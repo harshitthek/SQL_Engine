@@ -1,0 +1,44 @@
+{
+  "max_seq_length": 1024,
+  "train": {
+    "total_input": 8659,
+    "kept_count": 8199,
+    "dropped_count": 460,
+    "dropped_pct": 5.312391731146784,
+    "dropped_by_tier": {
+      "medium": 176,
+      "simple": 84,
+      "hard": 97,
+      "extra-hard": 103
+    },
+    "kept_by_tier": {
+      "simple": 1899,
+      "medium": 2823,
+      "hard": 1825,
+      "extra-hard": 1652
+    },
+    "dropped_by_db": {
+      "formula_1": 80,
+      "sakila_1": 82,
+      "assets_maintenance": 26,
+      "baseball_1": 82,
+      "hospital_1": 100,
+      "cre_Drama_Workshop_Groups": 82,
+      "cre_Theme_park": 8
+    }
+  },
+  "validation": {
+    "total_input": 1034,
+    "kept_count": 1034,
+    "dropped_count": 0,
+    "dropped_pct": 0.0,
+    "dropped_by_tier": {},
+    "kept_by_tier": {
+      "simple": 248,
+      "medium": 446,
+      "hard": 174,
+      "extra-hard": 166
+    },
+    "dropped_by_db": {}
+  }
+}
