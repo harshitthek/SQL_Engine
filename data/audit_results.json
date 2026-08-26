@@ -1,0 +1,20 @@
+{
+  "train": {
+    "easy": 0,
+    "medium": 2777,
+    "hard": 1461,
+    "extra": 0,
+    "simple": 1694,
+    "extra-hard": 1068
+  },
+  "dev": {
+    "easy": 0,
+    "medium": 446,
+    "hard": 174,
+    "extra": 0,
+    "simple": 248,
+    "extra-hard": 166
+  },
+  "total_train": 7000,
+  "total_dev": 1034
+}
