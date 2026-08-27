@@ -152,3 +152,5 @@ def eval_hardness(sql: Dict[str, Any]) -> str:
         return "hard"
     else:
         return "extra-hard"
+
+# Standardized evaluation for Spider AST schemas
