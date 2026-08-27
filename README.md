@@ -16,3 +16,5 @@ license: mit
 Production-grade Text-to-SQL semantic parser fine-tuned on the [Spider benchmark](https://yale-lily.github.io/spider) using QLoRA with **Qwen2.5-Coder-1.5B**. Supports multi-GPU training (NVID
 ### SQL Hardness Tiers
 Classifies queries into simple, moderate, challenging, and extra-hard.
+
+<!-- log: 2026-08-27 16:30:21 - data: record Spider dev set complexity distribution audit results -->
