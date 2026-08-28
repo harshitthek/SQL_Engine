@@ -20,8 +20,7 @@ Production-grade Text-to-SQL semantic parser fine-tuned on the [Spider benchmark
 ## Architecture
 
 ```
-┌─────────────┐       HTTP        ┌──────────────────┐
-## Prompt Engineering
-Markdown, ChatML, and Code Comment prompt templates.
-
-<!-- log: 2026-08-28 18:05:39 - refactor(prompting): standardize schema and question formatting delimiters -->
+┌─────────────┐       HTTP        ┌──────────────────┐      Model     ┌──────────────────┐
+│  Gradio UI  │ ──────────────▶   │   FastAPI API    │ ─────────────▶ │  Qwen2.5-Coder   │
+│  (port 7860)│   /v1/tosql       │   (port 8000)    │  generate_sql  │ 
+- ChatML format selected for Qwen2.5-Coder instruction tuning.
