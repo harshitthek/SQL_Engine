@@ -23,3 +23,5 @@ Production-grade Text-to-SQL semantic parser fine-tuned on the [Spider benchmark
 ┌─────────────┐       HTTP        ┌──────────────────┐
 ## Prompt Engineering
 Markdown, ChatML, and Code Comment prompt templates.
+
+<!-- log: 2026-08-28 18:05:39 - refactor(prompting): standardize schema and question formatting delimiters -->
