@@ -35,4 +35,29 @@ def test_complexity_classifier():
         "having": [],
         "orderBy": ("asc", [[0, [0, 2, False], None]]),
         "limit": 1,
-        "intersect": {"select": [False, []], "from": {"table_units": [], "conds": []}, "where": [], "groupBy": [], "having": [], "orderBy": [], "limit": None, "intersect": None, "un
+        "intersect": {"select": [False, []], "from": {"table_units": [], "conds": []}, "where": [], "groupBy": [], "having": [], "orderBy": [], "limit": None, "intersect": None, "union": None, "except": None},
+        "union": None,
+        "except": None,
+    }
+    assert eval_hardness(complex_sql) in ("hard", "extra-hard")
+
+
+def test_schema_serializer():
+    serializer = SchemaSerializer(
+        tables_json_path="data/spider_data/tables.json",
+        db_root_dir="data/spider_data/database",
+    )
+    assert "perpetrator" in serializer.get_db_ids()
+    ddl = serializer.serialize_ddl("perpetrator")
+    assert "CREATE TABLE `perpetrator`" in ddl
+    assert "CREATE TABLE `people`" in ddl
+    assert "PRIMARY KEY" in ddl
+    assert "FOREIGN KEY" in ddl
+
+
+def test_prompt_templates():
+    schema = "CREATE TABLE `users` (`id` NUMBER, `name` TEXT);"
+    question = "List all user names."
+    sql = "SELECT name FROM users;"
+
+    for name in ["markdown", "chatml", "code_comme
