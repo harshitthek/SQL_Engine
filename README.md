@@ -24,6 +24,9 @@ Production-grade Text-to-SQL semantic parser fine-tuned on the [Spider benchmark
 │  Gradio UI  │ ──────────────▶   │   FastAPI API    │ ─────────────▶ │  Qwen2.5-Coder   │
 │  (port 7860)│   /v1/tosql       │   (port 8000)    │  generate_sql  │  Text2SQL Engine  │
 │             │ ◀──────────────   │   Rate Limiting  │ ◀───────────── │  (GPU/MPS/CPU)    │
-│  Database   │       SQL         │   Health Check   │      SQL       │                 
-## Schema Serializer
-Extracts SQLite tables, primary keys, and foreign keys.
+│  Database   │       SQL         │   Health Check   │      SQL       │                   │
+│  Execution  │                   │   Request Queue  │                │                   │
+└─────────────┘                   └──────────────────┘                └──────────────────┘
+```
+
+> **Desi
