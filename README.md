@@ -29,5 +29,12 @@ Production-grade Text-to-SQL semantic parser fine-tuned on the [Spider benchmark
 └─────────────┘                   └──────────────────┘                └──────────────────┘
 ```
 
-> **Desi
-<!-- log: 2026-08-29 19:20:01 - fix(schema): handle special characters and backtick escaping in column names -->
+> **Design Rule**: Database credentials and SQL execution stay in Gradio. Model inference stays in FastAPI. They communicate only via HTTP.
+
+---
+
+## 📁 Repository Structure
+
+```text
+SQL_Engine/
+├── Makefile   
