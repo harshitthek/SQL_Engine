@@ -106,5 +106,108 @@ class SchemaSerializer:
                 continue
             src_tbl_idx, src_col_name = col_names[src_col_idx]
             tgt_tbl_idx, tgt_col_name = col_names[tgt_col_idx]
-            i
-# [WIP: table serialization]
+            if src_tbl_idx >= 0 and tgt_tbl_idx >= 0:
+                tgt_tbl_name = table_names[tgt_tbl_idx]
+                fk_by_table[src_tbl_idx].append(
+                    (src_col_name, tgt_tbl_name, tgt_col_name)
+                )
+
+        # Build DDL string
+        statements = []
+        for t_idx, t_name in enumerate(table_names):
+            lines = []
+            cols = table_cols.get(t_idx, [])
+            pk_cols = [c["name"] for c in cols if c["is_pk"]]
+
+            # Format columns
+            for c in cols:
+                # If single PK, can put inline; if multiple or standard, put column definition
+                c_line = f"  `{c['name']}` {c['type']}"
+                if c["is_pk"] and len(pk_cols) == 1:
+                    c_line += " PRIMARY KEY"
+                lines.append(c_line)
+
+            # Composite PK constraint if multiple
+            if len(pk_cols) > 1:
+                pk_str = ", ".join([f"`{name}`" for name in pk_cols])
+                lines.append(f"  PRIMARY KEY ({pk_str})")
+
+            # Foreign keys
+            fks = fk_by_table.get(t_idx, [])
+            for src_c, tgt_t, tgt_c in fks:
+                lines.append(
+                    f"  FOREIGN KEY (`{src_c}`) REFERENCES `{tgt_t}`(`{tgt_c}`)"
+                )
+
+            ddl = f"CREATE TABLE `{t_name}` (\n" + ",\n".join(lines) + "\n);"
+
+            # Add sample rows if requested
+            if include_sample_rows:
+                sample_rows = self.get_sample_rows(
+                    db_id, t_name, num_rows=num_sample_rows
+                )
+                if sample_rows:
+                    col_headers = [c["name"] for c in cols]
+                    header_str = " | ".join(col_headers)
+                    row_strs = []
+                    for row in sample_rows:
+                        # Limit string length to avoid extreme values
+                        row_strs.append(
+                            " | ".join(
+                                [
+                                    str(val)[:50] if val is not None else "NULL"
+                                    for val in row
+                                ]
+                            )
+                        )
+                    sample_block = (
+                        f"\n/*\n3 sample rows from `{t_name}`:\n{header_str}\n"
+                        + "\n".join(row_strs)
+                        + "\n*/"
+                    )
+                    ddl += sample_block
+
+            statements.append(ddl)
+
+        return "\n\n".join(statements)
+
+    def serialize_compact(self, db_id: str) -> str:
+        """Serialize schema into a compact text format:
+
+        Table: table_name (col1: TYPE [PK], col2: TYPE, ...)
+        Foreign keys: table.col -> other.col
+        """
+        if db_id not in self.schemas:
+            raise KeyError(f"Database ID '{db_id}' not found in tables.json")
+
+        data = self.schemas[db_id]
+        table_names = data.get("table_names_original", data.get("table_names", []))
+        col_names = data.get("column_names_original", data.get("column_names", []))
+        col_types = data.get("column_types", [])
+        primary_keys = set(data.get("primary_keys", []))
+        foreign_keys = data.get("foreign_keys", [])
+
+        table_lines = []
+        for t_idx, t_name in enumerate(table_names):
+            cols_desc = []
+            for col_idx, (tbl_idx, name) in enumerate(col_names):
+                if tbl_idx == t_idx:
+                    t_type = col_types[col_idx] if col_idx < len(col_types) else "text"
+                    pk_marker = " [PK]" if col_idx in primary_keys else ""
+                    cols_desc.append(f"{name}: {t_type}{pk_marker}")
+            table_lines.append(f"Table `{t_name}`: " + ", ".join(cols_desc))
+
+        fk_lines = []
+        for src_col_idx, tgt_col_idx in foreign_keys:
+            if src_col_idx < len(col_names) and tgt_col_idx < len(col_names):
+                src_tbl, src_col = col_names[src_col_idx]
+                tgt_tbl, tgt_col = col_names[tgt_col_idx]
+                if src_tbl >= 0 and tgt_tbl >= 0:
+                    fk_lines.append(
+                        f"{table_names[src_tbl]}.{src_col} -> {table_names[tgt_tbl]}.{tgt_col}"
+                    )
+
+        output = "\n".join(table_lines)
+        if fk_lines:
+            output += "\nForeign Keys:\n" + "\n".join(fk_lines)
+        return output
