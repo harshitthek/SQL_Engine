@@ -38,3 +38,4 @@ Production-grade Text-to-SQL semantic parser fine-tuned on the [Spider benchmark
 ```text
 SQL_Engine/
 ├── Makefile   
+<!-- log: 2026-08-29 22:45:00 - refactor(schema): add type hints and docstrings across schema serializer -->
