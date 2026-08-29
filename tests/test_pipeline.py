@@ -60,4 +60,16 @@ def test_prompt_templates():
     question = "List all user names."
     sql = "SELECT name FROM users;"
 
-    for name in ["markdown", "chatml", "code_comme
+    for name in ["markdown", "chatml", "code_comment"]:
+        template = TEMPLATES[name]
+        full_p = template.format_full(schema, question, sql)
+        input_p = template.format_input(schema, question)
+        assert question in full_p
+        assert sql in full_p
+        assert question in input_p
+        assert sql not in input_p
+
+
+def test_arrow_dataset_loading():
+    arrow_dir = "data/processed_arrow"
+    assert os.path.exists(arrow_d
