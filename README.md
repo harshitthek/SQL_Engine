@@ -30,3 +30,4 @@ Production-grade Text-to-SQL semantic parser fine-tuned on the [Spider benchmark
 ```
 
 > **Desi
+<!-- log: 2026-08-29 19:20:01 - fix(schema): handle special characters and backtick escaping in column names -->
