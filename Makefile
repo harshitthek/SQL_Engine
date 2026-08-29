@@ -5,3 +5,5 @@ data:
 	python run_all.py --task all
 prompt:
 	python scripts/run_prompts.py
+schema:
+	python scripts/run_schema.py
