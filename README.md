@@ -39,3 +39,5 @@ Production-grade Text-to-SQL semantic parser fine-tuned on the [Spider benchmark
 SQL_Engine/
 ├── Makefile   
 <!-- log: 2026-08-29 22:45:00 - refactor(schema): add type hints and docstrings across schema serializer -->
+
+<!-- log: 2026-08-30 13:00:22 - data: record empirical token count inflation for 0, 1, 3, and 5 sample rows -->
