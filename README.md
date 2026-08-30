@@ -39,6 +39,5 @@ Production-grade Text-to-SQL semantic parser fine-tuned on the [Spider benchmark
 SQL_Engine/
 ├── Makefile                          # Unified targets: install, serve, test, docker, etc.
 ├── Dockerfile                        # Multi-stage production Docker image
-├── docker-compose.yml                # Two-ser
-## Sample Rows Study
-Empirical analysis demonstrates sample rows increase token counts by 140%+.
+├── docker-compose.yml                # Two-service deployment (API + UI)
+├── pyproject.toml                    # Project metadata, pytest, ruff, m
