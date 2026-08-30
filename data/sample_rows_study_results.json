@@ -1,0 +1,1345 @@
+{
+  "num_dbs": 166,
+  "ddl_stats": {
+    "mean": 322.7831325301205,
+    "median": 219.0,
+    "p95": 807.0,
+    "max": 2838
+  },
+  "with_rows_stats": {
+    "mean": 838.4759036144578,
+    "median": 566.5,
+    "p95": 2244.5,
+    "max": 7710
+  },
+  "per_db_results": [
+    {
+      "db_id": "baseball_1",
+      "num_tables": 26,
+      "tokens_ddl": 2838,
+      "tokens_with_rows": 7710,
+      "inflation": 4872,
+      "pct_increase": 171.67019027484142
+    },
+    {
+      "db_id": "cre_Drama_Workshop_Groups",
+      "num_tables": 18,
+      "tokens_ddl": 1383,
+      "tokens_with_rows": 3524,
+      "inflation": 2141,
+      "pct_increase": 154.80838756326827
+    },
+    {
+      "db_id": "sakila_1",
+      "num_tables": 16,
+      "tokens_ddl": 1078,
+      "tokens_with_rows": 3008,
+      "inflation": 1930,
+      "pct_increase": 179.03525046382188
+    },
+    {
+      "db_id": "department_store",
+      "num_tables": 14,
+      "tokens_ddl": 774,
+      "tokens_with_rows": 2477,
+      "inflation": 1703,
+      "pct_increase": 220.02583979328168
+    },
+    {
+      "db_id": "hospital_1",
+      "num_tables": 15,
+      "tokens_ddl": 985,
+      "tokens_with_rows": 2606,
+      "inflation": 1621,
+      "pct_increase": 164.5685279187817
+    },
+    {
+      "db_id": "soccer_1",
+      "num_tables": 7,
+      "tokens_ddl": 847,
+      "tokens_with_rows": 2400,
+      "inflation": 1553,
+      "pct_increase": 183.3530106257379
+    },
+    {
+      "db_id": "behavior_monitoring",
+      "num_tables": 11,
+      "tokens_ddl": 818,
+      "tokens_with_rows": 2339,
+      "inflation": 1521,
+      "pct_increase": 185.94132029339855
+    },
+    {
+      "db_id": "formula_1",
+      "num_tables": 13,
+      "tokens_ddl": 1024,
+      "tokens_with_rows": 2525,
+      "inflation": 1501,
+      "pct_increase": 146.58203125
+    },
+    {
+      "db_id": "store_1",
+      "num_tables": 12,
+      "tokens_ddl": 696,
+      "tokens_with_rows": 2099,
+      "inflation": 1403,
+      "pct_increase": 201.58045977011497
+    },
+    {
+      "db_id": "e_government",
+      "num_tables": 10,
+      "tokens_ddl": 621,
+      "tokens_with_rows": 2010,
+      "inflation": 1389,
+      "pct_increase": 223.67149758454107
+    },
+    {
+      "db_id": "chinook_1",
+      "num_tables": 11,
+      "tokens_ddl": 684,
+      "tokens_with_rows": 2048,
+      "inflation": 1364,
+      "pct_increase": 199.41520467836258
+    },
+    {
+      "db_id": "assets_maintenance",
+      "num_tables": 14,
+      "tokens_ddl": 963,
+      "tokens_with_rows": 2293,
+      "inflation": 1330,
+      "pct_increase": 138.11007268951195
+    },
+    {
+      "db_id": "local_govt_and_lot",
+      "num_tables": 11,
+      "tokens_ddl": 722,
+      "tokens_with_rows": 2029,
+      "inflation": 1307,
+      "pct_increase": 181.02493074792244
+    },
+    {
+      "db_id": "customer_deliveries",
+      "num_tables": 13,
+      "tokens_ddl": 763,
+      "tokens_with_rows": 2061,
+      "inflation": 1298,
+      "pct_increase": 170.11795543905637
+    },
+    {
+      "db_id": "dog_kennels",
+      "num_tables": 8,
+      "tokens_ddl": 552,
+      "tokens_with_rows": 1833,
+      "inflation": 1281,
+      "pct_increase": 232.06521739130434
+    },
+    {
+      "db_id": "customers_and_invoices",
+      "num_tables": 9,
+      "tokens_ddl": 673,
+      "tokens_with_rows": 1840,
+      "inflation": 1167,
+      "pct_increase": 173.40267459138187
+    },
+    {
+      "db_id": "customers_campaigns_ecommerce",
+      "num_tables": 8,
+      "tokens_ddl": 520,
+      "tokens_with_rows": 1683,
+      "inflation": 1163,
+      "pct_increase": 223.65384615384616
+    },
+    {
+      "db_id": "products_for_hire",
+      "num_tables": 7,
+      "tokens_ddl": 560,
+      "tokens_with_rows": 1718,
+      "inflation": 1158,
+      "pct_increase": 206.7857142857143
+    },
+    {
+      "db_id": "driving_school",
+      "num_tables": 6,
+      "tokens_ddl": 450,
+      "tokens_with_rows": 1558,
+      "inflation": 1108,
+      "pct_increase": 246.2222222222222
+    },
+    {
+      "db_id": "student_assessment",
+      "num_tables": 9,
+      "tokens_ddl": 514,
+      "tokens_with_rows": 1608,
+      "inflation": 1094,
+      "pct_increase": 212.84046692607004
+    },
+    {
+      "db_id": "bike_1",
+      "num_tables": 4,
+      "tokens_ddl": 411,
+      "tokens_with_rows": 1454,
+      "inflation": 1043,
+      "pct_increase": 253.77128953771287
+    },
+    {
+      "db_id": "student_transcripts_tracking",
+      "num_tables": 11,
+      "tokens_ddl": 726,
+      "tokens_with_rows": 1766,
+      "inflation": 1040,
+      "pct_increase": 143.25068870523415
+    },
+    {
+      "db_id": "cre_Theme_park",
+      "num_tables": 16,
+      "tokens_ddl": 887,
+      "tokens_with_rows": 1891,
+      "inflation": 1004,
+      "pct_increase": 113.19052987598648
+    },
+    {
+      "db_id": "tracking_grants_for_research",
+      "num_tables": 12,
+      "tokens_ddl": 609,
+      "tokens_with_rows": 1539,
+      "inflation": 930,
+      "pct_increase": 152.70935960591132
+    },
+    {
+      "db_id": "e_learning",
+      "num_tables": 6,
+      "tokens_ddl": 392,
+      "tokens_with_rows": 1319,
+      "inflation": 927,
+      "pct_increase": 236.4795918367347
+    },
+    {
+      "db_id": "college_1",
+      "num_tables": 7,
+      "tokens_ddl": 568,
+      "tokens_with_rows": 1476,
+      "inflation": 908,
+      "pct_increase": 159.85915492957747
+    },
+    {
+      "db_id": "cre_Doc_Tracking_DB",
+      "num_tables": 8,
+      "tokens_ddl": 575,
+      "tokens_with_rows": 1466,
+      "inflation": 891,
+      "pct_increase": 154.95652173913044
+    },
+    {
+      "db_id": "customers_and_addresses",
+      "num_tables": 7,
+      "tokens_ddl": 392,
+      "tokens_with_rows": 1248,
+      "inflation": 856,
+      "pct_increase": 218.3673469387755
+    },
+    {
+      "db_id": "wta_1",
+      "num_tables": 3,
+      "tokens_ddl": 371,
+      "tokens_with_rows": 1225,
+      "inflation": 854,
+      "pct_increase": 230.18867924528303
+    },
+    {
+      "db_id": "customers_and_products_contacts",
+      "num_tables": 7,
+      "tokens_ddl": 394,
+      "tokens_with_rows": 1236,
+      "inflation": 842,
+      "pct_increase": 213.70558375634516
+    },
+    {
+      "db_id": "customer_complaints",
+      "num_tables": 4,
+      "tokens_ddl": 320,
+      "tokens_with_rows": 1141,
+      "inflation": 821,
+      "pct_increase": 256.5625
+    },
+    {
+      "db_id": "college_2",
+      "num_tables": 11,
+      "tokens_ddl": 699,
+      "tokens_with_rows": 1509,
+      "inflation": 810,
+      "pct_increase": 115.87982832618027
+    },
+    {
+      "db_id": "apartment_rentals",
+      "num_tables": 6,
+      "tokens_ddl": 404,
+      "tokens_with_rows": 1207,
+      "inflation": 803,
+      "pct_increase": 198.76237623762376
+    },
+    {
+      "db_id": "insurance_and_eClaims",
+      "num_tables": 7,
+      "tokens_ddl": 415,
+      "tokens_with_rows": 1171,
+      "inflation": 756,
+      "pct_increase": 182.16867469879517
+    },
+    {
+      "db_id": "real_estate_properties",
+      "num_tables": 5,
+      "tokens_ddl": 444,
+      "tokens_with_rows": 1192,
+      "inflation": 748,
+      "pct_increase": 168.46846846846844
+    },
+    {
+      "db_id": "customers_card_transactions",
+      "num_tables": 4,
+      "tokens_ddl": 269,
+      "tokens_with_rows": 1010,
+      "inflation": 741,
+      "pct_increase": 275.4646840148699
+    },
+    {
+      "db_id": "aircraft",
+      "num_tables": 5,
+      "tokens_ddl": 348,
+      "tokens_with_rows": 1087,
+      "inflation": 739,
+      "pct_increase": 212.35632183908044
+    },
+    {
+      "db_id": "hr_1",
+      "num_tables": 7,
+      "tokens_ddl": 444,
+      "tokens_with_rows": 1169,
+      "inflation": 725,
+      "pct_increase": 163.2882882882883
+    },
+    {
+      "db_id": "insurance_policies",
+      "num_tables": 5,
+      "tokens_ddl": 322,
+      "tokens_with_rows": 992,
+      "inflation": 670,
+      "pct_increase": 208.07453416149067
+    },
+    {
+      "db_id": "college_3",
+      "num_tables": 8,
+      "tokens_ddl": 468,
+      "tokens_with_rows": 1133,
+      "inflation": 665,
+      "pct_increase": 142.0940170940171
+    },
+    {
+      "db_id": "document_management",
+      "num_tables": 9,
+      "tokens_ddl": 437,
+      "tokens_with_rows": 1076,
+      "inflation": 639,
+      "pct_increase": 146.22425629290618
+    },
+    {
+      "db_id": "cre_Doc_Control_Systems",
+      "num_tables": 11,
+      "tokens_ddl": 611,
+      "tokens_with_rows": 1226,
+      "inflation": 615,
+      "pct_increase": 100.65466448445173
+    },
+    {
+      "db_id": "company_1",
+      "num_tables": 6,
+      "tokens_ddl": 250,
+      "tokens_with_rows": 862,
+      "inflation": 612,
+      "pct_increase": 244.79999999999998
+    },
+    {
+      "db_id": "solvency_ii",
+      "num_tables": 12,
+      "tokens_ddl": 501,
+      "tokens_with_rows": 1097,
+      "inflation": 596,
+      "pct_increase": 118.96207584830339
+    },
+    {
+      "db_id": "insurance_fnol",
+      "num_tables": 7,
+      "tokens_ddl": 355,
+      "tokens_with_rows": 939,
+      "inflation": 584,
+      "pct_increase": 164.50704225352112
+    },
+    {
+      "db_id": "city_record",
+      "num_tables": 4,
+      "tokens_ddl": 262,
+      "tokens_with_rows": 843,
+      "inflation": 581,
+      "pct_increase": 221.7557251908397
+    },
+    {
+      "db_id": "product_catalog",
+      "num_tables": 5,
+      "tokens_ddl": 352,
+      "tokens_with_rows": 933,
+      "inflation": 581,
+      "pct_increase": 165.0568181818182
+    },
+    {
+      "db_id": "tracking_software_problems",
+      "num_tables": 6,
+      "tokens_ddl": 408,
+      "tokens_with_rows": 963,
+      "inflation": 555,
+      "pct_increase": 136.02941176470588
+    },
+    {
+      "db_id": "tracking_orders",
+      "num_tables": 7,
+      "tokens_ddl": 374,
+      "tokens_with_rows": 920,
+      "inflation": 546,
+      "pct_increase": 145.98930481283423
+    },
+    {
+      "db_id": "farm",
+      "num_tables": 4,
+      "tokens_ddl": 266,
+      "tokens_with_rows": 795,
+      "inflation": 529,
+      "pct_increase": 198.87218045112783
+    },
+    {
+      "db_id": "swimming",
+      "num_tables": 4,
+      "tokens_ddl": 269,
+      "tokens_with_rows": 779,
+      "inflation": 510,
+      "pct_increase": 189.59107806691452
+    },
+    {
+      "db_id": "tvshow",
+      "num_tables": 3,
+      "tokens_ddl": 239,
+      "tokens_with_rows": 715,
+      "inflation": 476,
+      "pct_increase": 199.163179916318
+    },
+    {
+      "db_id": "protein_institute",
+      "num_tables": 3,
+      "tokens_ddl": 226,
+      "tokens_with_rows": 698,
+      "inflation": 472,
+      "pct_increase": 208.84955752212392
+    },
+    {
+      "db_id": "store_product",
+      "num_tables": 5,
+      "tokens_ddl": 251,
+      "tokens_with_rows": 720,
+      "inflation": 469,
+      "pct_increase": 186.85258964143426
+    },
+    {
+      "db_id": "phone_1",
+      "num_tables": 3,
+      "tokens_ddl": 211,
+      "tokens_with_rows": 674,
+      "inflation": 463,
+      "pct_increase": 219.43127962085308
+    },
+    {
+      "db_id": "school_player",
+      "num_tables": 4,
+      "tokens_ddl": 265,
+      "tokens_with_rows": 714,
+      "inflation": 449,
+      "pct_increase": 169.43396226415095
+    },
+    {
+      "db_id": "world_1",
+      "num_tables": 4,
+      "tokens_ddl": 237,
+      "tokens_with_rows": 673,
+      "inflation": 436,
+      "pct_increase": 183.9662447257384
+    },
+    {
+      "db_id": "csu_1",
+      "num_tables": 6,
+      "tokens_ddl": 293,
+      "tokens_with_rows": 721,
+      "inflation": 428,
+      "pct_increase": 146.07508532423208
+    },
+    {
+      "db_id": "sports_competition",
+      "num_tables": 5,
+      "tokens_ddl": 303,
+      "tokens_with_rows": 730,
+      "inflation": 427,
+      "pct_increase": 140.92409240924093
+    },
+    {
+      "db_id": "flight_4",
+      "num_tables": 3,
+      "tokens_ddl": 235,
+      "tokens_with_rows": 658,
+      "inflation": 423,
+      "pct_increase": 180.0
+    },
+    {
+      "db_id": "match_season",
+      "num_tables": 4,
+      "tokens_ddl": 225,
+      "tokens_with_rows": 640,
+      "inflation": 415,
+      "pct_increase": 184.44444444444446
+    },
+    {
+      "db_id": "flight_1",
+      "num_tables": 4,
+      "tokens_ddl": 177,
+      "tokens_with_rows": 590,
+      "inflation": 413,
+      "pct_increase": 233.33333333333334
+    },
+    {
+      "db_id": "railway",
+      "num_tables": 4,
+      "tokens_ddl": 240,
+      "tokens_with_rows": 653,
+      "inflation": 413,
+      "pct_increase": 172.08333333333334
+    },
+    {
+      "db_id": "cre_Docs_and_Epenses",
+      "num_tables": 7,
+      "tokens_ddl": 338,
+      "tokens_with_rows": 749,
+      "inflation": 411,
+      "pct_increase": 121.59763313609469
+    },
+    {
+      "db_id": "riding_club",
+      "num_tables": 5,
+      "tokens_ddl": 291,
+      "tokens_with_rows": 700,
+      "inflation": 409,
+      "pct_increase": 140.54982817869416
+    },
+    {
+      "db_id": "university_basketball",
+      "num_tables": 2,
+      "tokens_ddl": 188,
+      "tokens_with_rows": 584,
+      "inflation": 396,
+      "pct_increase": 210.63829787234042
+    },
+    {
+      "db_id": "products_gen_characteristics",
+      "num_tables": 6,
+      "tokens_ddl": 344,
+      "tokens_with_rows": 729,
+      "inflation": 385,
+      "pct_increase": 111.9186046511628
+    },
+    {
+      "db_id": "orchestra",
+      "num_tables": 4,
+      "tokens_ddl": 257,
+      "tokens_with_rows": 640,
+      "inflation": 383,
+      "pct_increase": 149.0272373540856
+    },
+    {
+      "db_id": "pilot_record",
+      "num_tables": 3,
+      "tokens_ddl": 204,
+      "tokens_with_rows": 583,
+      "inflation": 379,
+      "pct_increase": 185.7843137254902
+    },
+    {
+      "db_id": "party_people",
+      "num_tables": 4,
+      "tokens_ddl": 239,
+      "tokens_with_rows": 614,
+      "inflation": 375,
+      "pct_increase": 156.90376569037656
+    },
+    {
+      "db_id": "game_injury",
+      "num_tables": 3,
+      "tokens_ddl": 198,
+      "tokens_with_rows": 573,
+      "inflation": 375,
+      "pct_increase": 189.3939393939394
+    },
+    {
+      "db_id": "tracking_share_transactions",
+      "num_tables": 7,
+      "tokens_ddl": 337,
+      "tokens_with_rows": 710,
+      "inflation": 373,
+      "pct_increase": 110.68249258160236
+    },
+    {
+      "db_id": "activity_1",
+      "num_tables": 5,
+      "tokens_ddl": 255,
+      "tokens_with_rows": 624,
+      "inflation": 369,
+      "pct_increase": 144.70588235294116
+    },
+    {
+      "db_id": "machine_repair",
+      "num_tables": 4,
+      "tokens_ddl": 216,
+      "tokens_with_rows": 583,
+      "inflation": 367,
+      "pct_increase": 169.90740740740742
+    },
+    {
+      "db_id": "election",
+      "num_tables": 3,
+      "tokens_ddl": 194,
+      "tokens_with_rows": 560,
+      "inflation": 366,
+      "pct_increase": 188.659793814433
+    },
+    {
+      "db_id": "car_1",
+      "num_tables": 6,
+      "tokens_ddl": 287,
+      "tokens_with_rows": 652,
+      "inflation": 365,
+      "pct_increase": 127.17770034843205
+    },
+    {
+      "db_id": "restaurant_1",
+      "num_tables": 5,
+      "tokens_ddl": 256,
+      "tokens_with_rows": 612,
+      "inflation": 356,
+      "pct_increase": 139.0625
+    },
+    {
+      "db_id": "music_1",
+      "num_tables": 4,
+      "tokens_ddl": 251,
+      "tokens_with_rows": 602,
+      "inflation": 351,
+      "pct_increase": 139.8406374501992
+    },
+    {
+      "db_id": "cinema",
+      "num_tables": 3,
+      "tokens_ddl": 182,
+      "tokens_with_rows": 529,
+      "inflation": 347,
+      "pct_increase": 190.65934065934067
+    },
+    {
+      "db_id": "music_4",
+      "num_tables": 3,
+      "tokens_ddl": 180,
+      "tokens_with_rows": 524,
+      "inflation": 344,
+      "pct_increase": 191.11111111111111
+    },
+    {
+      "db_id": "concert_singer",
+      "num_tables": 4,
+      "tokens_ddl": 236,
+      "tokens_with_rows": 576,
+      "inflation": 340,
+      "pct_increase": 144.0677966101695
+    },
+    {
+      "db_id": "cre_Doc_Template_Mgt",
+      "num_tables": 4,
+      "tokens_ddl": 216,
+      "tokens_with_rows": 555,
+      "inflation": 339,
+      "pct_increase": 156.94444444444443
+    },
+    {
+      "db_id": "local_govt_mdm",
+      "num_tables": 8,
+      "tokens_ddl": 424,
+      "tokens_with_rows": 763,
+      "inflation": 339,
+      "pct_increase": 79.95283018867924
+    },
+    {
+      "db_id": "dorm_1",
+      "num_tables": 5,
+      "tokens_ddl": 249,
+      "tokens_with_rows": 587,
+      "inflation": 338,
+      "pct_increase": 135.7429718875502
+    },
+    {
+      "db_id": "voter_2",
+      "num_tables": 2,
+      "tokens_ddl": 282,
+      "tokens_with_rows": 618,
+      "inflation": 336,
+      "pct_increase": 119.14893617021276
+    },
+    {
+      "db_id": "school_finance",
+      "num_tables": 3,
+      "tokens_ddl": 207,
+      "tokens_with_rows": 541,
+      "inflation": 334,
+      "pct_increase": 161.35265700483092
+    },
+    {
+      "db_id": "flight_company",
+      "num_tables": 3,
+      "tokens_ddl": 197,
+      "tokens_with_rows": 523,
+      "inflation": 326,
+      "pct_increase": 165.48223350253807
+    },
+    {
+      "db_id": "culture_company",
+      "num_tables": 3,
+      "tokens_ddl": 208,
+      "tokens_with_rows": 534,
+      "inflation": 326,
+      "pct_increase": 156.73076923076923
+    },
+    {
+      "db_id": "gas_company",
+      "num_tables": 3,
+      "tokens_ddl": 195,
+      "tokens_with_rows": 513,
+      "inflation": 318,
+      "pct_increase": 163.07692307692307
+    },
+    {
+      "db_id": "county_public_safety",
+      "num_tables": 2,
+      "tokens_ddl": 166,
+      "tokens_with_rows": 482,
+      "inflation": 316,
+      "pct_increase": 190.36144578313252
+    },
+    {
+      "db_id": "coffee_shop",
+      "num_tables": 4,
+      "tokens_ddl": 204,
+      "tokens_with_rows": 518,
+      "inflation": 314,
+      "pct_increase": 153.921568627451
+    },
+    {
+      "db_id": "station_weather",
+      "num_tables": 4,
+      "tokens_ddl": 209,
+      "tokens_with_rows": 522,
+      "inflation": 313,
+      "pct_increase": 149.76076555023923
+    },
+    {
+      "db_id": "candidate_poll",
+      "num_tables": 2,
+      "tokens_ddl": 130,
+      "tokens_with_rows": 441,
+      "inflation": 311,
+      "pct_increase": 239.23076923076923
+    },
+    {
+      "db_id": "architecture",
+      "num_tables": 3,
+      "tokens_ddl": 172,
+      "tokens_with_rows": 479,
+      "inflation": 307,
+      "pct_increase": 178.48837209302326
+    },
+    {
+      "db_id": "game_1",
+      "num_tables": 4,
+      "tokens_ddl": 225,
+      "tokens_with_rows": 532,
+      "inflation": 307,
+      "pct_increase": 136.44444444444443
+    },
+    {
+      "db_id": "mountain_photos",
+      "num_tables": 3,
+      "tokens_ddl": 168,
+      "tokens_with_rows": 470,
+      "inflation": 302,
+      "pct_increase": 179.76190476190476
+    },
+    {
+      "db_id": "employee_hire_evaluation",
+      "num_tables": 4,
+      "tokens_ddl": 197,
+      "tokens_with_rows": 495,
+      "inflation": 298,
+      "pct_increase": 151.26903553299493
+    },
+    {
+      "db_id": "shop_membership",
+      "num_tables": 4,
+      "tokens_ddl": 222,
+      "tokens_with_rows": 519,
+      "inflation": 297,
+      "pct_increase": 133.7837837837838
+    },
+    {
+      "db_id": "company_office",
+      "num_tables": 3,
+      "tokens_ddl": 175,
+      "tokens_with_rows": 471,
+      "inflation": 296,
+      "pct_increase": 169.14285714285714
+    },
+    {
+      "db_id": "gymnast",
+      "num_tables": 2,
+      "tokens_ddl": 147,
+      "tokens_with_rows": 442,
+      "inflation": 295,
+      "pct_increase": 200.68027210884352
+    },
+    {
+      "db_id": "film_rank",
+      "num_tables": 3,
+      "tokens_ddl": 168,
+      "tokens_with_rows": 456,
+      "inflation": 288,
+      "pct_increase": 171.42857142857142
+    },
+    {
+      "db_id": "program_share",
+      "num_tables": 4,
+      "tokens_ddl": 213,
+      "tokens_with_rows": 501,
+      "inflation": 288,
+      "pct_increase": 135.2112676056338
+    },
+    {
+      "db_id": "wine_1",
+      "num_tables": 3,
+      "tokens_ddl": 191,
+      "tokens_with_rows": 479,
+      "inflation": 288,
+      "pct_increase": 150.78534031413614
+    },
+    {
+      "db_id": "company_employee",
+      "num_tables": 3,
+      "tokens_ddl": 178,
+      "tokens_with_rows": 462,
+      "inflation": 284,
+      "pct_increase": 159.5505617977528
+    },
+    {
+      "db_id": "battle_death",
+      "num_tables": 3,
+      "tokens_ddl": 188,
+      "tokens_with_rows": 472,
+      "inflation": 284,
+      "pct_increase": 151.06382978723406
+    },
+    {
+      "db_id": "inn_1",
+      "num_tables": 2,
+      "tokens_ddl": 139,
+      "tokens_with_rows": 413,
+      "inflation": 274,
+      "pct_increase": 197.12230215827338
+    },
+    {
+      "db_id": "train_station",
+      "num_tables": 3,
+      "tokens_ddl": 159,
+      "tokens_with_rows": 427,
+      "inflation": 268,
+      "pct_increase": 168.55345911949686
+    },
+    {
+      "db_id": "device",
+      "num_tables": 3,
+      "tokens_ddl": 152,
+      "tokens_with_rows": 414,
+      "inflation": 262,
+      "pct_increase": 172.36842105263156
+    },
+    {
+      "db_id": "roller_coaster",
+      "num_tables": 2,
+      "tokens_ddl": 126,
+      "tokens_with_rows": 386,
+      "inflation": 260,
+      "pct_increase": 206.34920634920638
+    },
+    {
+      "db_id": "loan_1",
+      "num_tables": 3,
+      "tokens_ddl": 183,
+      "tokens_with_rows": 441,
+      "inflation": 258,
+      "pct_increase": 140.98360655737704
+    },
+    {
+      "db_id": "medicine_enzyme_interaction",
+      "num_tables": 3,
+      "tokens_ddl": 152,
+      "tokens_with_rows": 409,
+      "inflation": 257,
+      "pct_increase": 169.07894736842107
+    },
+    {
+      "db_id": "club_1",
+      "num_tables": 3,
+      "tokens_ddl": 162,
+      "tokens_with_rows": 412,
+      "inflation": 250,
+      "pct_increase": 154.320987654321
+    },
+    {
+      "db_id": "climbing",
+      "num_tables": 2,
+      "tokens_ddl": 116,
+      "tokens_with_rows": 363,
+      "inflation": 247,
+      "pct_increase": 212.93103448275863
+    },
+    {
+      "db_id": "perpetrator",
+      "num_tables": 2,
+      "tokens_ddl": 123,
+      "tokens_with_rows": 368,
+      "inflation": 245,
+      "pct_increase": 199.1869918699187
+    },
+    {
+      "db_id": "twitter_1",
+      "num_tables": 3,
+      "tokens_ddl": 143,
+      "tokens_with_rows": 386,
+      "inflation": 243,
+      "pct_increase": 169.93006993006995
+    },
+    {
+      "db_id": "poker_player",
+      "num_tables": 2,
+      "tokens_ddl": 116,
+      "tokens_with_rows": 357,
+      "inflation": 241,
+      "pct_increase": 207.75862068965517
+    },
+    {
+      "db_id": "body_builder",
+      "num_tables": 2,
+      "tokens_ddl": 111,
+      "tokens_with_rows": 349,
+      "inflation": 238,
+      "pct_increase": 214.4144144144144
+    },
+    {
+      "db_id": "pets_1",
+      "num_tables": 3,
+      "tokens_ddl": 154,
+      "tokens_with_rows": 391,
+      "inflation": 237,
+      "pct_increase": 153.89610389610388
+    },
+    {
+      "db_id": "phone_market",
+      "num_tables": 3,
+      "tokens_ddl": 151,
+      "tokens_with_rows": 382,
+      "inflation": 231,
+      "pct_increase": 152.98013245033113
+    },
+    {
+      "db_id": "theme_gallery",
+      "num_tables": 3,
+      "tokens_ddl": 150,
+      "tokens_with_rows": 381,
+      "inflation": 231,
+      "pct_increase": 154.0
+    },
+    {
+      "db_id": "icfp_1",
+      "num_tables": 4,
+      "tokens_ddl": 163,
+      "tokens_with_rows": 390,
+      "inflation": 227,
+      "pct_increase": 139.2638036809816
+    },
+    {
+      "db_id": "debate",
+      "num_tables": 3,
+      "tokens_ddl": 174,
+      "tokens_with_rows": 400,
+      "inflation": 226,
+      "pct_increase": 129.8850574712644
+    },
+    {
+      "db_id": "election_representative",
+      "num_tables": 2,
+      "tokens_ddl": 119,
+      "tokens_with_rows": 342,
+      "inflation": 223,
+      "pct_increase": 187.39495798319328
+    },
+    {
+      "db_id": "musical",
+      "num_tables": 2,
+      "tokens_ddl": 119,
+      "tokens_with_rows": 341,
+      "inflation": 222,
+      "pct_increase": 186.5546218487395
+    },
+    {
+      "db_id": "manufacturer",
+      "num_tables": 3,
+      "tokens_ddl": 158,
+      "tokens_with_rows": 380,
+      "inflation": 222,
+      "pct_increase": 140.50632911392404
+    },
+    {
+      "db_id": "department_management",
+      "num_tables": 3,
+      "tokens_ddl": 149,
+      "tokens_with_rows": 370,
+      "inflation": 221,
+      "pct_increase": 148.3221476510067
+    },
+    {
+      "db_id": "voter_1",
+      "num_tables": 3,
+      "tokens_ddl": 129,
+      "tokens_with_rows": 348,
+      "inflation": 219,
+      "pct_increase": 169.7674418604651
+    },
+    {
+      "db_id": "party_host",
+      "num_tables": 3,
+      "tokens_ddl": 152,
+      "tokens_with_rows": 370,
+      "inflation": 218,
+      "pct_increase": 143.42105263157893
+    },
+    {
+      "db_id": "wedding",
+      "num_tables": 3,
+      "tokens_ddl": 169,
+      "tokens_with_rows": 386,
+      "inflation": 217,
+      "pct_increase": 128.4023668639053
+    },
+    {
+      "db_id": "entrepreneur",
+      "num_tables": 2,
+      "tokens_ddl": 104,
+      "tokens_with_rows": 320,
+      "inflation": 216,
+      "pct_increase": 207.6923076923077
+    },
+    {
+      "db_id": "museum_visit",
+      "num_tables": 3,
+      "tokens_ddl": 149,
+      "tokens_with_rows": 362,
+      "inflation": 213,
+      "pct_increase": 142.95302013422818
+    },
+    {
+      "db_id": "news_report",
+      "num_tables": 3,
+      "tokens_ddl": 151,
+      "tokens_with_rows": 360,
+      "inflation": 209,
+      "pct_increase": 138.41059602649005
+    },
+    {
+      "db_id": "ship_mission",
+      "num_tables": 2,
+      "tokens_ddl": 118,
+      "tokens_with_rows": 325,
+      "inflation": 207,
+      "pct_increase": 175.4237288135593
+    },
+    {
+      "db_id": "singer",
+      "num_tables": 2,
+      "tokens_ddl": 111,
+      "tokens_with_rows": 317,
+      "inflation": 206,
+      "pct_increase": 185.5855855855856
+    },
+    {
+      "db_id": "browser_web",
+      "num_tables": 3,
+      "tokens_ddl": 139,
+      "tokens_with_rows": 343,
+      "inflation": 204,
+      "pct_increase": 146.76258992805757
+    },
+    {
+      "db_id": "school_bus",
+      "num_tables": 3,
+      "tokens_ddl": 152,
+      "tokens_with_rows": 355,
+      "inflation": 203,
+      "pct_increase": 133.55263157894737
+    },
+    {
+      "db_id": "storm_record",
+      "num_tables": 3,
+      "tokens_ddl": 147,
+      "tokens_with_rows": 349,
+      "inflation": 202,
+      "pct_increase": 137.41496598639455
+    },
+    {
+      "db_id": "race_track",
+      "num_tables": 2,
+      "tokens_ddl": 99,
+      "tokens_with_rows": 300,
+      "inflation": 201,
+      "pct_increase": 203.03030303030303
+    },
+    {
+      "db_id": "wrestler",
+      "num_tables": 2,
+      "tokens_ddl": 129,
+      "tokens_with_rows": 328,
+      "inflation": 199,
+      "pct_increase": 154.26356589147287
+    },
+    {
+      "db_id": "flight_2",
+      "num_tables": 3,
+      "tokens_ddl": 151,
+      "tokens_with_rows": 348,
+      "inflation": 197,
+      "pct_increase": 130.46357615894038
+    },
+    {
+      "db_id": "entertainment_awards",
+      "num_tables": 3,
+      "tokens_ddl": 155,
+      "tokens_with_rows": 352,
+      "inflation": 197,
+      "pct_increase": 127.09677419354838
+    },
+    {
+      "db_id": "allergy_1",
+      "num_tables": 3,
+      "tokens_ddl": 146,
+      "tokens_with_rows": 341,
+      "inflation": 195,
+      "pct_increase": 133.56164383561645
+    },
+    {
+      "db_id": "workshop_paper",
+      "num_tables": 3,
+      "tokens_ddl": 134,
+      "tokens_with_rows": 329,
+      "inflation": 195,
+      "pct_increase": 145.5223880597015
+    },
+    {
+      "db_id": "performance_attendance",
+      "num_tables": 3,
+      "tokens_ddl": 139,
+      "tokens_with_rows": 329,
+      "inflation": 190,
+      "pct_increase": 136.69064748201438
+    },
+    {
+      "db_id": "movie_1",
+      "num_tables": 3,
+      "tokens_ddl": 120,
+      "tokens_with_rows": 310,
+      "inflation": 190,
+      "pct_increase": 158.33333333333331
+    },
+    {
+      "db_id": "ship_1",
+      "num_tables": 2,
+      "tokens_ddl": 111,
+      "tokens_with_rows": 299,
+      "inflation": 188,
+      "pct_increase": 169.36936936936937
+    },
+    {
+      "db_id": "journal_committee",
+      "num_tables": 3,
+      "tokens_ddl": 124,
+      "tokens_with_rows": 310,
+      "inflation": 186,
+      "pct_increase": 150.0
+    },
+    {
+      "db_id": "scientist_1",
+      "num_tables": 3,
+      "tokens_ddl": 100,
+      "tokens_with_rows": 283,
+      "inflation": 183,
+      "pct_increase": 183.0
+    },
+    {
+      "db_id": "soccer_2",
+      "num_tables": 3,
+      "tokens_ddl": 132,
+      "tokens_with_rows": 312,
+      "inflation": 180,
+      "pct_increase": 136.36363636363635
+    },
+    {
+      "db_id": "decoration_competition",
+      "num_tables": 3,
+      "tokens_ddl": 141,
+      "tokens_with_rows": 320,
+      "inflation": 179,
+      "pct_increase": 126.95035460992908
+    },
+    {
+      "db_id": "book_2",
+      "num_tables": 2,
+      "tokens_ddl": 91,
+      "tokens_with_rows": 257,
+      "inflation": 166,
+      "pct_increase": 182.41758241758242
+    },
+    {
+      "db_id": "epinions_1",
+      "num_tables": 4,
+      "tokens_ddl": 181,
+      "tokens_with_rows": 347,
+      "inflation": 166,
+      "pct_increase": 91.71270718232044
+    },
+    {
+      "db_id": "local_govt_in_alabama",
+      "num_tables": 4,
+      "tokens_ddl": 156,
+      "tokens_with_rows": 314,
+      "inflation": 158,
+      "pct_increase": 101.28205128205127
+    },
+    {
+      "db_id": "course_teach",
+      "num_tables": 3,
+      "tokens_ddl": 126,
+      "tokens_with_rows": 283,
+      "inflation": 157,
+      "pct_increase": 124.60317460317461
+    },
+    {
+      "db_id": "network_1",
+      "num_tables": 3,
+      "tokens_ddl": 139,
+      "tokens_with_rows": 285,
+      "inflation": 146,
+      "pct_increase": 105.03597122302158
+    },
+    {
+      "db_id": "small_bank_1",
+      "num_tables": 3,
+      "tokens_ddl": 102,
+      "tokens_with_rows": 236,
+      "inflation": 134,
+      "pct_increase": 131.37254901960785
+    },
+    {
+      "db_id": "manufactory_1",
+      "num_tables": 2,
+      "tokens_ddl": 88,
+      "tokens_with_rows": 215,
+      "inflation": 127,
+      "pct_increase": 144.3181818181818
+    },
+    {
+      "db_id": "student_1",
+      "num_tables": 2,
+      "tokens_ddl": 62,
+      "tokens_with_rows": 189,
+      "inflation": 127,
+      "pct_increase": 204.83870967741936
+    },
+    {
+      "db_id": "network_2",
+      "num_tables": 2,
+      "tokens_ddl": 91,
+      "tokens_with_rows": 194,
+      "inflation": 103,
+      "pct_increase": 113.18681318681318
+    },
+    {
+      "db_id": "academic",
+      "num_tables": 15,
+      "tokens_ddl": 633,
+      "tokens_with_rows": 633,
+      "inflation": 0,
+      "pct_increase": 0.0
+    },
+    {
+      "db_id": "imdb",
+      "num_tables": 16,
+      "tokens_ddl": 731,
+      "tokens_with_rows": 731,
+      "inflation": 0,
+      "pct_increase": 0.0
+    },
+    {
+      "db_id": "music_2",
+      "num_tables": 7,
+      "tokens_ddl": 332,
+      "tokens_with_rows": 332,
+      "inflation": 0,
+      "pct_increase": 0.0
+    },
+    {
+      "db_id": "restaurants",
+      "num_tables": 3,
+      "tokens_ddl": 162,
+      "tokens_with_rows": 162,
+      "inflation": 0,
+      "pct_increase": 0.0
+    },
+    {
+      "db_id": "scholar",
+      "num_tables": 10,
+      "tokens_ddl": 404,
+      "tokens_with_rows": 404,
+      "inflation": 0,
+      "pct_increase": 0.0
+    },
+    {
+      "db_id": "yelp",
+      "num_tables": 7,
+      "tokens_ddl": 416,
+      "tokens_with_rows": 416,
+      "inflation": 0,
+      "pct_increase": 0.0
+    },
+    {
+      "db_id": "geo",
+      "num_tables": 7,
+      "tokens_ddl": 353,
+      "tokens_with_rows": 353,
+      "inflation": 0,
+      "pct_increase": 0.0
+    }
+  ]
+}
