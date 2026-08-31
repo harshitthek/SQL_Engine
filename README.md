@@ -43,11 +43,7 @@ SQL_Engine/
 ├── pyproject.toml                    # Project metadata, pytest, ruff, mypy config
 ├── requirements.txt                  # Deployment dependencies (inference + serving)
 ├── requirements-train.txt            # Full training dependencies (includes deployment)
-├── .env_examp
-## Sequence Length Distribution
-- p50: 284 tokens
-- p90: 412 tokens
-- p95: 498 tokens
-- p99: 684 tokens
-
-<!-- log: 2026-08-31 21:10:39 - refactor(scripts): add percentile summary printer to token distribution CLI -->
+├── .env_example                      # Environment variable template
+├── .gitignore                        # Comprehensive exclusion rules
+├── .dockerignore                     # Docker build context exclusions
+│
