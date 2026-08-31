@@ -49,3 +49,5 @@ SQL_Engine/
 - p90: 412 tokens
 - p95: 498 tokens
 - p99: 684 tokens
+
+<!-- log: 2026-08-31 21:10:39 - refactor(scripts): add percentile summary printer to token distribution CLI -->
