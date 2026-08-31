@@ -9,3 +9,5 @@ schema:
 	python scripts/run_schema.py
 study:
 	python scripts/run_sample_study.py
+tokens:
+	python scripts/run_token_dist.py
