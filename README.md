@@ -42,3 +42,5 @@ SQL_Engine/
 ├── docker-compose.yml                # Two-service deployment (API + UI)
 ├── pyproject.toml                    # Project metadata, pytest, ruff, m
 <!-- log: 2026-08-30 22:15:00 - refactor(scripts): format sample study output as markdown table -->
+
+<!-- log: 2026-08-31 12:00:45 - data: record token length distribution statistics (p50, p90, p95, p99) -->
