@@ -72,4 +72,11 @@ def test_prompt_templates():
 
 def test_arrow_dataset_loading():
     arrow_dir = "data/processed_arrow"
-    assert os.path.exists(arrow_d
+    assert os.path.exists(arrow_dir)
+    ds = load_from_disk(arrow_dir)
+    assert "train" in ds
+    assert "validation" in ds
+    assert len(ds["train"]) > 0
+    assert len(ds["validation"]) > 0
+    sample = ds["train"][0]
+    for k
