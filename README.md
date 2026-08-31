@@ -40,9 +40,12 @@ SQL_Engine/
 ├── Makefile                          # Unified targets: install, serve, test, docker, etc.
 ├── Dockerfile                        # Multi-stage production Docker image
 ├── docker-compose.yml                # Two-service deployment (API + UI)
-├── pyproject.toml                    # Project metadata, pytest, ruff, m
-<!-- log: 2026-08-30 22:15:00 - refactor(scripts): format sample study output as markdown table -->
-
-<!-- log: 2026-08-31 12:00:45 - data: record token length distribution statistics (p50, p90, p95, p99) -->
-
-<!-- log: 2026-08-31 16:15:02 - refactor(tokenizer): add trust_remote_code support for Qwen tokenizer -->
+├── pyproject.toml                    # Project metadata, pytest, ruff, mypy config
+├── requirements.txt                  # Deployment dependencies (inference + serving)
+├── requirements-train.txt            # Full training dependencies (includes deployment)
+├── .env_examp
+## Sequence Length Distribution
+- p50: 284 tokens
+- p90: 412 tokens
+- p95: 498 tokens
+- p99: 684 tokens
