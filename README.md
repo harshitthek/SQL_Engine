@@ -47,9 +47,7 @@ SQL_Engine/
 ├── .gitignore                        # Comprehensive exclusion rules
 ├── .dockerignore                     # Docker build context exclusions
 │
-
-<!-- log: 2026-09-01 12:40:22 - data: record dataset filtering statistics and drop counts -->
-
-<!-- log: 2026-09-01 14:15:05 - data: cache filter statistics in data root -->
-
-<!-- log: 2026-09-01 17:25:10 - refactor(dataset): format Hugging Face DatasetDict features and metadata -->
+├── deployment/                       # Production Deployment Stack
+│   ├── api.py                        # FastAPI REST API (rate limiting, health, inference lock)
+│   ├── prediction.py                 # Text2SQLEngine with KaggleHub model resolution
+│   ├── database.py                   # SQLAlche
