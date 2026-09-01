@@ -49,3 +49,5 @@ SQL_Engine/
 │
 
 <!-- log: 2026-09-01 12:40:22 - data: record dataset filtering statistics and drop counts -->
+
+<!-- log: 2026-09-01 14:15:05 - data: cache filter statistics in data root -->
