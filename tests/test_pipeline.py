@@ -79,4 +79,9 @@ def test_arrow_dataset_loading():
     assert len(ds["train"]) > 0
     assert len(ds["validation"]) > 0
     sample = ds["train"][0]
-    for k
+    for key in ["id", "db_id", "question", "sql", "hardness", "prompt", "token_length"]:
+        assert key in sample
+
+
+def test_exact_match_metric():
+    from src.training.eval_metrics import compute_exact_ma
