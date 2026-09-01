@@ -47,3 +47,5 @@ SQL_Engine/
 ├── .gitignore                        # Comprehensive exclusion rules
 ├── .dockerignore                     # Docker build context exclusions
 │
+
+<!-- log: 2026-09-01 12:40:22 - data: record dataset filtering statistics and drop counts -->
