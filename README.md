@@ -52,3 +52,5 @@ SQL_Engine/
 │   ├── prediction.py                 # Text2SQLEngine with KaggleHub model resolution
 │   ├── database.py                   # SQLAlche
 <!-- log: 2026-09-02 15:20:44 - refactor(pipeline): connect root run_all.py to data.processing.run_pipeline -->
+
+<!-- log: 2026-09-02 18:30:25 - refactor(pipeline): support --task all and individual task selection -->
