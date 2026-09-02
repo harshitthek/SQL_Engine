@@ -54,3 +54,5 @@ SQL_Engine/
 <!-- log: 2026-09-02 15:20:44 - refactor(pipeline): connect root run_all.py to data.processing.run_pipeline -->
 
 <!-- log: 2026-09-02 18:30:25 - refactor(pipeline): support --task all and individual task selection -->
+
+<!-- log: 2026-09-02 21:20:35 - refactor(data): finalize data.processing subpackage exports -->
