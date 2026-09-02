@@ -51,3 +51,4 @@ SQL_Engine/
 │   ├── api.py                        # FastAPI REST API (rate limiting, health, inference lock)
 │   ├── prediction.py                 # Text2SQLEngine with KaggleHub model resolution
 │   ├── database.py                   # SQLAlche
+<!-- log: 2026-09-02 15:20:44 - refactor(pipeline): connect root run_all.py to data.processing.run_pipeline -->
