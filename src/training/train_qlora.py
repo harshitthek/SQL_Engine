@@ -221,5 +221,30 @@ def train_qlora(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         model = AutoModelForCausalLM.from_pretrained(
             model_id,
             torch_dtype=torch.float32,
-            trust_remote_
-# [WIP: NF4 quantization]
+            trust_remote_code=True,
+        )
+
+    # 4. LoRA Configuration (Task 03)
+    print(f"\n--- TASK 03: LoRA Adapter Configuration ---")
+    lora_config = LoraConfig(
+        r=cfg["LORA_R"],
+        lora_alpha=cfg["LORA_ALPHA"],
+        lora_dropout=cfg["LORA_DROPOUT"],
+        target_modules=cfg["TARGET_MODULES"],
+        bias="none",
+        task_type="CAUSAL_LM",
+    )
+    model = get_peft_model(model, lora_config)
+    model.print_trainable_parameters()
+
+    # 5. Load Processed Arrow Dataset
+    dataset_path = cfg["DATASET_PATH"]
+    print(f"\nLoading preprocessed Arrow dataset from '{dataset_path}'...")
+    dataset = load_from_disk(dataset_path)
+    train_data = dataset["train"].map(lambda ex: {"completion": " " + ex["sql"]})
+    val_data = dataset["validation"].map(lambda ex: {"completion": " " + ex["sql"]})
+
+    # Handle Smoke Test mode (Task 05)
+    if cfg["SMOKE_TEST"]:
+        print("\n" + "!" * 60)
+        print(f"SMOKE TEST ACTIVE: Slicing {cfg['SMOKE_SAMPLES_TRAIN']} train samples, {cfg['S
