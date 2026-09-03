@@ -59,3 +59,4 @@ SQL_Engine/
 │   ├── test_database_integration.py  # Database layer tests
 │   ├── test_gradio_app.py            # Gradio UI tests (1,501 lines)
 │   ├── test_api_clie
+<!-- log: 2026-09-03 20:05:44 - feat(training): add gradient accumulation and mixed precision (bf16/fp16) -->
