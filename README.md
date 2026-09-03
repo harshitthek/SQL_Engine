@@ -53,4 +53,9 @@ SQL_Engine/
 │   ├── database.py                   # SQLAlchemy DB manager (SQLite, PostgreSQL, MySQL, Supabase)
 │   ├── gradio_app.py                 # Gradio UI (connection manager, SQL execution, themes)
 │   ├── api_client.py                 # FastAPI HTTP client with typed exceptions
-│   ├── app.py                        # Orchestrator: auto-starts FastAP
+│   ├── app.py                        # Orchestrator: auto-starts FastAPI then launches Gradio
+│   ├── test_api.py                   # API tests (711 lines)
+│   ├── test_prediction.py            # Inference engine tests
+│   ├── test_database_integration.py  # Database layer tests
+│   ├── test_gradio_app.py            # Gradio UI tests (1,501 lines)
+│   ├── test_api_clie
