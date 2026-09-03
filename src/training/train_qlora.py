@@ -197,5 +197,29 @@ def train_qlora(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     # 3. Load Model (Task 01 & Task 02)
     print(f"\n--- TASK 01 & 02: Model Loading & Quantization Setup ---")
     if hw["is_cuda"] and hw["bnb_available"]:
-        compute_dtype = torch.bfloat16 if
-# [WIP: training loop setup]
+        compute_dtype = torch.bfloat16 if hw["is_bf16"] else torch.float16
+        print(f"Configuring 4-bit BitsAndBytesConfig (NF4, compute_dtype={compute_dtype})...")
+        print(f"Using device_map: {device_map}")
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=compute_dtype,
+            bnb_4bit_use_double_quant=True,
+        )
+        model = AutoModelForCausalLM.from_pretrained(
+            model_id,
+            quantization_config=bnb_config,
+            device_map=device_map,
+            trust_remote_code=True,
+        )
+        print("Calling prepare_model_for_kbit_training() (Task 02)...")
+        model = prepare_model_for_kbit_training(
+            model, use_gradient_checkpointing=True
+        )
+    else:
+        print("Running in non-CUDA/CPU/MPS fallback mode for testing...")
+        model = AutoModelForCausalLM.from_pretrained(
+            model_id,
+            torch_dtype=torch.float32,
+            trust_remote_
+# [WIP: NF4 quantization]
