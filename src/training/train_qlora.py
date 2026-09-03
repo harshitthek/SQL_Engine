@@ -315,3 +315,82 @@ def train_qlora(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     trainer_kwargs = {
         "model": model,
         "train_dataset": train_data,
+        "args": training_args,
+        "callbacks": [em_callback],
+    }
+    # Check SFTTrainer signature
+    trainer_sig = inspect.signature(SFTTrainer.__init__).parameters
+    if "processing_class" in trainer_sig:
+        trainer_kwargs["processing_class"] = tokenizer
+    elif "tokenizer" in trainer_sig:
+        trainer_kwargs["tokenizer"] = tokenizer
+
+    if "dataset_text_field" in trainer_sig and "dataset_text_field" not in sft_kwargs:
+        trainer_kwargs["dataset_text_field"] = "full_text"
+    if "max_seq_length" in trainer_sig and "max_length" not in sft_kwargs:
+        trainer_kwargs["max_seq_length"] = cfg["MAX_SEQ_LENGTH"]
+
+    trainer = SFTTrainer(**trainer_kwargs)
+
+    # 8. Train (Task 08)
+    print(f"\n--- TASK 08: Starting Training Loop ---")
+    train_result = trainer.train()
+    print("Training finished successfully!")
+    print(f"Final Train Loss: {train_result.training_loss:.4f}")
+
+    # Save trained LoRA adapter weights
+    print(f"Saving fine-tuned LoRA adapter to '{adapter_dir}'...")
+    trainer.model.save_pretrained(adapter_dir)
+    tokenizer.save_pretrained(adapter_dir)
+
+    # 9 & 10. Merge LoRA Adapters & Export Standalone Model (Task 09 & 10)
+    print(f"\n--- TASKS 09 & 10: Merging Adapters & Exporting Standalone Model ---")
+    merged_output_dir = cfg["MERGED_OUTPUT_DIR"]
+    metadata_payload = {
+        "config": cfg,
+        "hardware": hw,
+        "final_loss": float(train_result.training_loss),
+        "best_exact_match": em_callback.best_em,
+        "em_history": em_callback.history,
+    }
+
+    metadata = merge_lora_and_save(
+        base_model_id=cfg["MODEL_ID"],
+        adapter_path=adapter_dir,
+        output_dir=merged_output_dir,
+        tokenizer_id=model_id,
+        training_metadata=metadata_payload,
+        device_map="auto" if hw["is_cuda"] else "cpu",
+    )
+
+    return {
+        "final_loss": train_result.training_loss,
+        "best_em": em_callback.best_em,
+        "adapter_dir": adapter_dir,
+        "merged_dir": merged_output_dir,
+        "metadata": metadata,
+    }
+
+
+def main():
+    parser = argparse.ArgumentParser(description="QLoRA Text-to-SQL Training")
+    parser.add_argument("--smoke-test", action="store_true", help="Run rapid smoke test")
+    parser.add_argument("--model-id", type=str, default=DEFAULT_CONFIG["MODEL_ID"])
+    parser.add_argument("--epochs", type=int, default=DEFAULT_CONFIG["NUM_EPOCHS"])
+    parser.add_argument("--batch-size", type=int, default=DEFAULT_CONFIG["BATCH_SIZE"])
+    parser.add_argument("--lr", type=float, default=DEFAULT_CONFIG["LEARNING_RATE"])
+    args = parser.parse_args()
+
+    config = {
+        "SMOKE_TEST": args.smoke_test,
+        "MODEL_ID": args.model_id,
+        "NUM_EPOCHS": args.epochs,
+        "BATCH_SIZE": args.batch_size,
+        "LEARNING_RATE": args.lr,
+    }
+
+    train_qlora(config)
+
+
+if __name__ == "__main__":
+    main()
