@@ -1,6 +1,6 @@
 [tool.ruff]
 line-length = 88
 [tool.ruff.lint]
-select = ["E", "F", "I", "B"]
+select = ["E", "F", "I", "B", "UP"]
 [tool.pytest.ini_options]
 pythonpath = ["."]
