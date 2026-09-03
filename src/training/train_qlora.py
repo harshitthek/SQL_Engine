@@ -247,4 +247,25 @@ def train_qlora(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     # Handle Smoke Test mode (Task 05)
     if cfg["SMOKE_TEST"]:
         print("\n" + "!" * 60)
-        print(f"SMOKE TEST ACTIVE: Slicing {cfg['SMOKE_SAMPLES_TRAIN']} train samples, {cfg['S
+        print(f"SMOKE TEST ACTIVE: Slicing {cfg['SMOKE_SAMPLES_TRAIN']} train samples, {cfg['SMOKE_STEPS']} steps")
+        print("!" * 60)
+        train_data = train_data.select(range(min(cfg["SMOKE_SAMPLES_TRAIN"], len(train_data))))
+        val_data = val_data.select(range(min(cfg["SMOKE_SAMPLES_DEV"], len(val_data))))
+
+    # 6. Training Arguments & SFTConfig (Task 04)
+    print(f"\n--- TASK 04: TrainingArguments / SFTConfig Configuration ---")
+    adapter_dir = cfg["ADAPTER_OUTPUT_DIR"]
+    os.makedirs(adapter_dir, exist_ok=True)
+
+    max_steps = cfg["SMOKE_STEPS"] if cfg["SMOKE_TEST"] else -1
+    eval_steps = min(cfg["EVAL_STEPS"], max(1, max_steps // 2)) if cfg["SMOKE_TEST"] else cfg["EVAL_STEPS"]
+
+    # Detect SFTConfig parameters for version compatibility (TRL v0.8 vs v0.12+)
+    import inspect
+    from trl import SFTConfig
+    sft_sig = inspect.signature(SFTConfig.__init__).parameters
+    # Calculate warmup steps from warmup ratio
+    if max_steps > 0:
+        total_steps = max_steps
+    else:
+        steps_per_epoch = len(train_data) // (cfg["BATCH_SIZE"] * cfg["GRAD_
