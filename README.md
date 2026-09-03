@@ -60,3 +60,5 @@ SQL_Engine/
 │   ├── test_gradio_app.py            # Gradio UI tests (1,501 lines)
 │   ├── test_api_clie
 <!-- log: 2026-09-03 20:05:44 - feat(training): add gradient accumulation and mixed precision (bf16/fp16) -->
+
+<!-- log: 2026-09-03 21:55:30 - test(smoke): integrate training smoke test into test runner -->
