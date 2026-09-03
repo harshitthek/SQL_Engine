@@ -15,3 +15,5 @@ dataset:
 	python scripts/run_filter_export.py
 sanity:
 	python scripts/run_sanity.py
+smoke-test:
+	python scripts/smoke_test_pipeline.py
