@@ -1,0 +1,49 @@
+==========================================================================================
+PYTHON / SYSTEM
+==========================================================================================
+Python       : 3.12.13 (main, Mar  4 2026, 09:23:07) [GCC 11.4.0]
+Platform     : Linux-6.12.90+-x86_64-with-glibc2.35
+Architecture : x86_64
+
+==========================================================================================
+INSTALLED ML / TRAINING DEPENDENCIES
+==========================================================================================
+torch                  : 2.10.0+cu128
+torchvision            : 0.25.0+cu128
+torchaudio             : 2.10.0+cu128
+torchao                : 0.18.0
+transformers           : 5.16.1
+accelerate             : 1.14.0
+peft                   : 0.20.0
+trl                    : 1.12.0
+bitsandbytes           : 0.50.2
+safetensors            : 0.8.0
+datasets               : 5.0.1
+tokenizers             : 0.23.2
+huggingface-hub        : 1.11.0
+numpy                  : 2.0.2
+pandas                 : 2.3.3
+scipy                  : 1.16.3
+
+==========================================================================================
+CUDA / GPU
+==========================================================================================
+PyTorch CUDA available : True
+PyTorch CUDA version   : 12.8
+cuDNN version          : 91002
+GPU count              : 2
+GPU 0                  : Tesla T4 | 14.56 GB | Compute Capability 7.5
+GPU 1                  : Tesla T4 | 14.56 GB | Compute Capability 7.5
+
+==========================================================================================
+CRITICAL COMPATIBILITY CHECKS
+==========================================================================================
+safetensors.safe_open : (filename, framework, device=Ellipsis, *, backend=Ellipsis)
+✓ safetensors supports `backend=`
+bitsandbytes loaded   : YES (0.50.2)
+transformers imported : YES (5.16.1)
+accelerate imported   : YES (1.14.0)
+
+==========================================================================================
+AUDIT COMPLETE
+==========================================================================================
