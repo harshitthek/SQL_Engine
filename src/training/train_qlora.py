@@ -291,4 +291,27 @@ def train_qlora(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         "report_to": [] if cfg["TRACKER"] == "none" else [cfg["TRACKER"]],
         "logging_dir": os.path.join(adapter_dir, "logs"),
         "remove_unused_columns": False,
-        "ddp_find_u
+        "ddp_find_unused_parameters": False,
+        "gradient_checkpointing_kwargs": {"use_reentrant": False},
+        "optim": cfg["OPTIMIZER"] if (hw["is_cuda"] and hw["bnb_available"]) else "adamw_torch",
+        "dataloader_num_workers": cfg["DATALOADER_NUM_WORKERS"] if hw["is_cuda"] else 0,
+        "dataloader_pin_memory": cfg["DATALOADER_PIN_MEMORY"] if hw["is_cuda"] else False,
+    }
+    if "max_length" in sft_sig:
+        sft_kwargs["max_length"] = cfg["MAX_SEQ_LENGTH"]
+    if "dataset_text_field" in sft_sig:
+        sft_kwargs["dataset_text_field"] = "full_text"
+
+    training_args = SFTConfig(**sft_kwargs)
+
+    # 7. Trainer Setup with Mid-Training Exact Match (Task 06 & 07)
+    em_callback = MidTrainingExactMatchCallback(
+        dev_dataset=val_data,
+        tokenizer=tokenizer,
+        eval_steps=eval_steps,
+        max_samples=cfg["SMOKE_SAMPLES_DEV"] if cfg["SMOKE_TEST"] else cfg["EVAL_DEV_SAMPLES"],
+    )
+
+    trainer_kwargs = {
+        "model": model,
+        "train_dataset": train_data,
