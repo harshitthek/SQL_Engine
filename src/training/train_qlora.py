@@ -268,4 +268,27 @@ def train_qlora(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     if max_steps > 0:
         total_steps = max_steps
     else:
-        steps_per_epoch = len(train_data) // (cfg["BATCH_SIZE"] * cfg["GRAD_
+        steps_per_epoch = len(train_data) // (cfg["BATCH_SIZE"] * cfg["GRAD_ACCUM_STEPS"])
+        total_steps = steps_per_epoch * cfg["NUM_EPOCHS"]
+    warmup_steps = max(1, int(cfg["WARMUP_RATIO"] * total_steps))
+
+    sft_kwargs = {
+        "output_dir": adapter_dir,
+        "learning_rate": cfg["LEARNING_RATE"],
+        "lr_scheduler_type": "cosine",
+        "warmup_steps": warmup_steps,
+        "gradient_accumulation_steps": cfg["GRAD_ACCUM_STEPS"],
+        "per_device_train_batch_size": cfg["BATCH_SIZE"],
+        "per_device_eval_batch_size": cfg["BATCH_SIZE"],
+        "num_train_epochs": cfg["NUM_EPOCHS"],
+        "max_steps": max_steps,
+        "bf16": hw["is_bf16"],
+        "fp16": (not hw["is_bf16"] and hw["is_cuda"]),
+        "logging_steps": cfg["LOGGING_STEPS"],
+        "save_strategy": "steps",
+        "save_steps": eval_steps,
+        "save_total_limit": 2,
+        "report_to": [] if cfg["TRACKER"] == "none" else [cfg["TRACKER"]],
+        "logging_dir": os.path.join(adapter_dir, "logs"),
+        "remove_unused_columns": False,
+        "ddp_find_u
