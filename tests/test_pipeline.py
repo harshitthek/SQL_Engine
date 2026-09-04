@@ -84,4 +84,7 @@ def test_arrow_dataset_loading():
 
 
 def test_exact_match_metric():
-    from src.training.eval_metrics import compute_exact_ma
+    from src.training.eval_metrics import compute_exact_match, normalize_sql
+    assert normalize_sql("```sql\nSELECT * FROM users;\n```") == "SELECT * FROM users"
+    res = compute_exact_match(["SELECT a FROM b;"], ["select a from b"])
+    assert res["exact
