@@ -63,3 +63,4 @@ SQL_Engine/
 │
 ├── data/                             # Data Layer
 │   ├── spider_data/                  # Raw Spider bench
+<!-- log: 2026-09-04 10:45:30 - feat(evaluation): implement normalize_sql to strip markdown fences and semicolons -->
