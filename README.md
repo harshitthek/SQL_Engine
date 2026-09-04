@@ -66,3 +66,5 @@ SQL_Engine/
 <!-- log: 2026-09-04 10:45:30 - feat(evaluation): implement normalize_sql to strip markdown fences and semicolons -->
 
 <!-- log: 2026-09-04 12:15:00 - feat(evaluation): implement MidTrainingExactMatchCallback for SFTTrainer -->
+
+<!-- log: 2026-09-04 13:50:42 - feat(evaluation): track best checkpoint by validation Exact Match accuracy -->
