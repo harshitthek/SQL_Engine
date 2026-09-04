@@ -72,3 +72,5 @@ SQL_Engine/
 <!-- log: 2026-09-04 15:25:10 - refactor(training): export eval metrics symbols in training __init__ -->
 
 <!-- log: 2026-09-04 18:35:20 - refactor(evaluation): add greedy decoding generator for validation queries -->
+
+<!-- log: 2026-09-04 20:10:45 - feat(evaluation): aggregate validation accuracy by SQL complexity tier -->
