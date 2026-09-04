@@ -68,3 +68,5 @@ SQL_Engine/
 <!-- log: 2026-09-04 12:15:00 - feat(evaluation): implement MidTrainingExactMatchCallback for SFTTrainer -->
 
 <!-- log: 2026-09-04 13:50:42 - feat(evaluation): track best checkpoint by validation Exact Match accuracy -->
+
+<!-- log: 2026-09-04 15:25:10 - refactor(training): export eval metrics symbols in training __init__ -->
