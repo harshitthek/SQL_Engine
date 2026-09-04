@@ -62,15 +62,7 @@ SQL_Engine/
 │   └── test_app.py                   # Orchestrator tests
 │
 ├── data/                             # Data Layer
-│   ├── spider_data/                  # Raw Spider bench
-<!-- log: 2026-09-04 10:45:30 - feat(evaluation): implement normalize_sql to strip markdown fences and semicolons -->
-
-<!-- log: 2026-09-04 12:15:00 - feat(evaluation): implement MidTrainingExactMatchCallback for SFTTrainer -->
-
-<!-- log: 2026-09-04 13:50:42 - feat(evaluation): track best checkpoint by validation Exact Match accuracy -->
-
-<!-- log: 2026-09-04 15:25:10 - refactor(training): export eval metrics symbols in training __init__ -->
-
-<!-- log: 2026-09-04 18:35:20 - refactor(evaluation): add greedy decoding generator for validation queries -->
-
-<!-- log: 2026-09-04 20:10:45 - feat(evaluation): aggregate validation accuracy by SQL complexity tier -->
+│   ├── spider_data/                  # Raw Spider benchmark (git-ignored)
+│   ├── processed_arrow/              # Preprocessed HF Arrow dataset (git-ignored)
+│   ├── reports/                      # JSON audit & distribution reports
+│   └── processing/    
