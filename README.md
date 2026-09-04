@@ -66,3 +66,4 @@ SQL_Engine/
 │   ├── processed_arrow/              # Preprocessed HF Arrow dataset (git-ignored)
 │   ├── reports/                      # JSON audit & distribution reports
 │   └── processing/    
+<!-- log: 2026-09-04 22:40:15 - refactor(evaluation): optimize generation memory consumption during evaluation steps -->
