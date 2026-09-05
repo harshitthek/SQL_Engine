@@ -69,3 +69,5 @@ SQL_Engine/
 <!-- log: 2026-09-04 22:40:15 - refactor(evaluation): optimize generation memory consumption during evaluation steps -->
 
 <!-- log: 2026-09-05 10:30:45 - feat(merging): implement compute_file_sha256 for model weight integrity checks -->
+
+<!-- log: 2026-09-05 11:50:10 - feat(merging): export training_metadata.json with architecture specs and file hashes -->
