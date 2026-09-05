@@ -1,0 +1,34 @@
+{
+  "total": 20,
+  "exact_match": 80.0,
+  "em_correct": 16,
+  "execution_accuracy": 85.0,
+  "ex_correct": 17,
+  "by_hardness": {
+    "hard": {
+      "total": 2,
+      "em_correct": 1,
+      "em_percent": 50.0,
+      "ex_correct": 1,
+      "ex_percent": 50.0
+    },
+    "medium": {
+      "total": 14,
+      "em_correct": 11,
+      "em_percent": 78.57,
+      "ex_correct": 12,
+      "ex_percent": 85.71
+    },
+    "simple": {
+      "total": 4,
+      "em_correct": 4,
+      "em_percent": 100.0,
+      "ex_correct": 4,
+      "ex_percent": 100.0
+    }
+  },
+  "error_breakdown": {
+    "RuntimeError": 2,
+    "ResultMismatch": 1
+  }
+}
