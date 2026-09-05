@@ -65,13 +65,9 @@ SQL_Engine/
 │   ├── spider_data/                  # Raw Spider benchmark (git-ignored)
 │   ├── processed_arrow/              # Preprocessed HF Arrow dataset (git-ignored)
 │   ├── reports/                      # JSON audit & distribution reports
-│   └── processing/    
-<!-- log: 2026-09-04 22:40:15 - refactor(evaluation): optimize generation memory consumption during evaluation steps -->
-
-<!-- log: 2026-09-05 10:30:45 - feat(merging): implement compute_file_sha256 for model weight integrity checks -->
-
-<!-- log: 2026-09-05 11:50:10 - feat(merging): export training_metadata.json with architecture specs and file hashes -->
-
-<!-- log: 2026-09-05 16:05:00 - feat(notebook): configure accelerate.notebook_launcher for true multi-GPU DDP -->
-
-<!-- log: 2026-09-05 22:00:20 - refactor(training): finalize training package exports in __init__.py -->
+│   └── processing/                   # Data processing modules
+│       ├── complexity.py             # SQL AST hardness classifier
+│       ├── prompt_templates.py       # Prompt template library
+│       ├── schema_serializer.py      # SQLite DDL extraction
+│       ├── dataset_builder.py        # Arrow dataset creator
+│  
