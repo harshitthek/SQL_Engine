@@ -73,3 +73,5 @@ SQL_Engine/
 <!-- log: 2026-09-05 11:50:10 - feat(merging): export training_metadata.json with architecture specs and file hashes -->
 
 <!-- log: 2026-09-05 16:05:00 - feat(notebook): configure accelerate.notebook_launcher for true multi-GPU DDP -->
+
+<!-- log: 2026-09-05 22:00:20 - refactor(training): finalize training package exports in __init__.py -->
