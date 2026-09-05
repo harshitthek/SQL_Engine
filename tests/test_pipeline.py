@@ -87,4 +87,12 @@ def test_exact_match_metric():
     from src.training.eval_metrics import compute_exact_match, normalize_sql
     assert normalize_sql("```sql\nSELECT * FROM users;\n```") == "SELECT * FROM users"
     res = compute_exact_match(["SELECT a FROM b;"], ["select a from b"])
-    assert res["exact
+    assert res["exact_match"] == 100.0
+
+
+def test_compute_file_sha256(tmp_path):
+    from src.training.merge_model import compute_file_sha256
+    p = tmp_path / "test.txt"
+    p.write_text("hello world")
+    h = compute_file_sha256(str(p))
+    assert len(h) == 64
