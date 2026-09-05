@@ -71,3 +71,5 @@ SQL_Engine/
 <!-- log: 2026-09-05 10:30:45 - feat(merging): implement compute_file_sha256 for model weight integrity checks -->
 
 <!-- log: 2026-09-05 11:50:10 - feat(merging): export training_metadata.json with architecture specs and file hashes -->
+
+<!-- log: 2026-09-05 16:05:00 - feat(notebook): configure accelerate.notebook_launcher for true multi-GPU DDP -->
