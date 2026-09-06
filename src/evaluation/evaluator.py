@@ -346,4 +346,60 @@ def compare_result_sets(
     
     Treats results as a multiset (bag) of rows. Checks all column permutations
     so that column reordering (e.g. SELECT a, b vs SELECT b, a) is treated as a match.
-    Us
+    Uses column multiset pruning to achieve exact matching efficiently without false positives.
+    """
+    if res1 is None and res2 is None:
+        return True
+    if res1 is None or res2 is None:
+        return False
+    if len(res1) != len(res2):
+        return False
+    if len(res1) == 0 and len(res2) == 0:
+        return True
+    if len(res1[0]) != len(res2[0]):
+        return False
+
+    num_cols = len(res1[0])
+    norm1 = [tuple(normalize_val(x) for x in r) for r in res1]
+    norm2 = [tuple(normalize_val(x) for x in r) for r in res2]
+
+    target_counter = Counter(norm2)
+
+    # Fast path: columns are already in identical order
+    if Counter(norm1) == target_counter:
+        return True
+
+    # If single column and did not match above, no permutation will help
+    if num_cols == 1:
+        return False
+
+    # Extract column multisets across all rows to prune the search space
+    col_counts1 = [Counter(row[j] for row in norm1) for j in range(num_cols)]
+    col_counts2 = [Counter(row[i] for row in norm2) for i in range(num_cols)]
+
+    # Candidate source column indices in norm1 for each target column position i in norm2
+    candidates = []
+    for i in range(num_cols):
+        cands = [j for j in range(num_cols) if col_counts1[j] == col_counts2[i]]
+        if not cands:
+            return False
+        candidates.append(cands)
+
+    def search(target_idx: int, used_src: set, perm: list) -> bool:
+        if target_idx == num_cols:
+            perm_counter = Counter(tuple(row[perm[k]] for k in range(num_cols)) for row in norm1)
+            return perm_counter == target_counter
+        for src_col in candidates[target_idx]:
+            if src_col not in used_src:
+                used_src.add(src_col)
+                perm.append(src_col)
+                if search(target_idx + 1, used_src, perm):
+                    return True
+                perm.pop()
+                used_src.remove(src_col)
+        return False
+
+    return search(0, set(), [])
+
+
+# ------------------------
