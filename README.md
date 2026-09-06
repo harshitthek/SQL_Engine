@@ -70,4 +70,9 @@ SQL_Engine/
 │       ├── prompt_templates.py       # Prompt template library
 │       ├── schema_serializer.py      # SQLite DDL extraction
 │       ├── dataset_builder.py        # Arrow dataset creator
-│  
+│       ├── tokenizer_utils.py        # Tokenizer wrapper & visualizer
+│       ├── sanity_checker.py         # Validation & inspection
+│       ├── sample_rows_study.py      # Token inflation study
+│       └── run_pipeline.py           # Unified runner (Tasks 02-09)
+│
+├── src/                           
