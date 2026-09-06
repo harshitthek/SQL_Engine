@@ -225,5 +225,70 @@ def sort_select_columns(sql: str) -> str:
         def repl(match):
             prefix = match.group(1)
             cols_str = match.group(2).strip()
-            cols = [c.strip() for c in cols_str.split(","
-# [WIP: evaluation engine]
+            cols = [c.strip() for c in cols_str.split(",") if c.strip()]
+            unmasked_cols = [unmask(c) for c in cols]
+            sorted_cols = sorted(unmasked_cols, key=str.lower)
+            return prefix + ", ".join(sorted_cols) + " "
+
+        replaced = pattern.sub(repl, masked)
+        return unmask(replaced)
+
+    result = process_single_level(s)
+    return " ".join(result.split())
+
+
+def normalize_sql(query: str, sort_columns: bool = True) -> str:
+    """Normalize SQL query for fair comparison.
+    
+    - Strips markdown code blocks
+    - Strips comments
+    - Strips trailing semicolons and whitespace
+    - Normalizes internal whitespace
+    - Removes backticks around identifiers
+    - Normalizes commas and operators
+    - Sorts SELECT columns (if sort_columns is True)
+    """
+    if not query:
+        return ""
+
+    # Strip markdown fences
+    query = re.sub(r"^```(?:sql)?\s*", "", query.strip(), flags=re.IGNORECASE)
+    query = re.sub(r"\s*```$", "", query.strip())
+
+    # Strip comments
+    query = re.sub(r"--.*$", "", query, flags=re.MULTILINE)
+    query = re.sub(r"/\*.*?\*/", "", query, flags=re.DOTALL)
+
+    # Strip trailing semicolon and whitespace
+    query = query.strip().rstrip(";").strip()
+
+    # Remove backticks
+    query = query.replace("`", "")
+
+    # Normalize whitespace before commas
+    query = re.sub(r"\s*,\s*", ", ", query)
+
+    # Normalize internal whitespace
+    query = " ".join(query.split())
+
+    # Sort columns if requested
+    if sort_columns:
+        query = sort_select_columns(query)
+        query = " ".join(query.split())
+
+    return query.strip()
+
+
+def normalize_for_em(query: str) -> str:
+    """Normalize SQL query for Exact Match comparison (lowercased, columns sorted)."""
+    norm = normalize_sql(query, sort_columns=True).lower()
+    norm = re.sub(r"\s*,\s*", ", ", norm)
+    norm = re.sub(r"\(\s+", "(", norm)
+    norm = re.sub(r"\s+\)", ")", norm)
+    return " ".join(norm.split())
+
+
+def compute_exact_match(
+    predictions: List[str], references: List[str]
+) -> Dict[str, Any]:
+   
