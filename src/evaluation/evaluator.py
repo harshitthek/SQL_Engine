@@ -291,4 +291,59 @@ def normalize_for_em(query: str) -> str:
 def compute_exact_match(
     predictions: List[str], references: List[str]
 ) -> Dict[str, Any]:
-   
+    """Compute Exact Match (EM) percentage between normalized predictions and labels."""
+    if not predictions or not references or len(predictions) != len(references):
+        return {"exact_match": 0.0, "total": 0, "correct": 0}
+
+    correct = 0
+    total = len(predictions)
+
+    for pred, ref in zip(predictions, references):
+        norm_pred = normalize_for_em(pred)
+        norm_ref = normalize_for_em(ref)
+        if norm_pred == norm_ref:
+            correct += 1
+
+    em = (correct / total * 100.0) if total > 0 else 0.0
+    return {
+        "exact_match": round(em, 2),
+        "total": total,
+        "correct": correct,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Task 03: Result Set Comparison (Execution Accuracy)
+# ---------------------------------------------------------------------------
+
+def normalize_val(val: Any) -> Any:
+    """Normalize individual SQL result values for fair comparison."""
+    if val is None:
+        return None
+    if isinstance(val, float):
+        return "__SQL_NAN__" if math.isnan(val) else round(val, 3)
+    if isinstance(val, int):
+        return val
+    if isinstance(val, str):
+        cleaned = val.strip()
+        if not any(c.isdigit() for c in cleaned):
+            return cleaned.lower()
+        if cleaned.isdigit() and len(cleaned) > 1 and cleaned.startswith("0"):
+            return cleaned
+        try:
+            f = float(cleaned)
+            return round(f, 3) if "." in cleaned else int(f)
+        except ValueError:
+            return cleaned.lower()
+    return val
+
+
+def compare_result_sets(
+    res1: Optional[List[Tuple[Any, ...]]],
+    res2: Optional[List[Tuple[Any, ...]]],
+) -> bool:
+    """Compare two SQLite result sets regardless of row and column order.
+    
+    Treats results as a multiset (bag) of rows. Checks all column permutations
+    so that column reordering (e.g. SELECT a, b vs SELECT b, a) is treated as a match.
+    Uses column multiset pruning to achieve exact matching
