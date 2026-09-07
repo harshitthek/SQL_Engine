@@ -79,3 +79,5 @@ SQL_Engine/
 <!-- log: 2026-09-07 15:15:45 - feat(evaluator): reject destructive SQL statements (INSERT, UPDATE, DELETE, DROP, ALTER) -->
 
 <!-- log: 2026-09-07 16:25:00 - fix(evaluator): allow keywords in string literals or comments without false positives -->
+
+<!-- log: 2026-09-07 17:35:22 - feat(evaluator): implement SQLEvaluator and evaluate_batch with complexity tiers -->
