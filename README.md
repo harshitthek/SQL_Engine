@@ -75,11 +75,8 @@ SQL_Engine/
 │       ├── sample_rows_study.py      # Token inflation study
 │       └── run_pipeline.py           # Unified runner (Tasks 02-09)
 │
-├── src/                           
-<!-- log: 2026-09-07 15:15:45 - feat(evaluator): reject destructive SQL statements (INSERT, UPDATE, DELETE, DROP, ALTER) -->
-
-<!-- log: 2026-09-07 16:25:00 - fix(evaluator): allow keywords in string literals or comments without false positives -->
-
-<!-- log: 2026-09-07 17:35:22 - feat(evaluator): implement SQLEvaluator and evaluate_batch with complexity tiers -->
-
-<!-- log: 2026-09-07 22:05:12 - refactor(inference): export Text2SQLEngine in src.inference.__init__ -->
+├── src/                              # Core ML Engine
+│   ├── training/                     # QLoRA Training
+│   │   ├── train_qlora.py            # 4-bit NF4 fine-tuning with PEFT + TRL
+│   │   ├── eval_metrics.py           # Exact Match evaluation & mid-training callback
+│   │   └── merge_model.py            # LoRA merge & SHA-256
