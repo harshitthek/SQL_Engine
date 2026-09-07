@@ -491,4 +491,68 @@ def execute_query(
             execution_time=round(time.time() - t0, 4),
         )
     except Exception as e:
-        executo
+        executor.shutdown(wait=False)
+        return ExecutionResult(
+            success=False,
+            error_type="RuntimeError",
+            error_message=str(e),
+            execution_time=round(time.time() - t0, 4),
+        )
+
+
+# ---------------------------------------------------------------------------
+# SQLEvaluator Engine
+# ---------------------------------------------------------------------------
+
+class SQLEvaluator:
+    """Evaluates Exact Match (EM) and Execution Accuracy (EX) for Text-to-SQL."""
+
+    def __init__(
+        self,
+        db_root_dirs: Optional[List[str]] = None,
+        timeout: float = 3.0,
+    ):
+        self.db_root_dirs = db_root_dirs or DEFAULT_DB_ROOTS
+        self.timeout = timeout
+        self.db_cache: Dict[str, str] = {}
+
+    def resolve_db(self, db_id: str) -> str:
+        """Resolve database path with caching."""
+        if db_id not in self.db_cache:
+            self.db_cache[db_id] = get_db_path(db_id, self.db_root_dirs)
+        return self.db_cache[db_id]
+
+    def evaluate_single(
+        self,
+        pred_sql: str,
+        gold_sql: str,
+        db_id: str,
+        hardness: Optional[str] = None,
+    ) -> EvalItemResult:
+        """Evaluate a single predicted SQL against gold SQL."""
+        em_correct = normalize_for_em(pred_sql) == normalize_for_em(gold_sql)
+
+        try:
+            db_path = self.resolve_db(db_id)
+        except FileNotFoundError as e:
+            return EvalItemResult(
+                em_correct=em_correct,
+                ex_correct=False,
+                error_type="RuntimeError",
+                error_message=str(e),
+                pred_sql=pred_sql,
+                gold_sql=gold_sql,
+                db_id=db_id,
+                hardness=hardness,
+            )
+
+        gold_exec = execute_query(
+            db_path=db_path,
+            query=gold_sql,
+            timeout=self.timeout,
+            check_sandbox=False,
+        )
+
+        if not gold_exec.success:
+            return EvalItemResult(
+          
