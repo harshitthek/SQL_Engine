@@ -614,4 +614,53 @@ class SQLEvaluator:
                 gold_sql=gold_sql,
                 db_id=db_id,
                 hardness=hardness,
-           
+                execution_time=pred_exec.execution_time,
+            )
+        else:
+            return EvalItemResult(
+                em_correct=em_correct,
+                ex_correct=False,
+                error_type="ResultMismatch",
+                error_message=f"Result mismatch: pred returned {len(pred_data)} rows, gold returned {len(gold_data)} rows",
+                pred_sql=pred_sql,
+                gold_sql=gold_sql,
+                db_id=db_id,
+                hardness=hardness,
+                execution_time=pred_exec.execution_time,
+            )
+
+    def evaluate_batch(
+        self,
+        predictions: List[str],
+        references: List[str],
+        db_ids: List[str],
+        hardness_list: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """Evaluate a batch of predictions against references across SQLite databases."""
+        assert len(predictions) == len(references) == len(db_ids), (
+            f"Mismatched lengths: predictions ({len(predictions)}), "
+            f"references ({len(references)}), db_ids ({len(db_ids)})"
+        )
+
+        n = len(predictions)
+        if hardness_list is None:
+            hardness_list = ["all"] * n
+
+        results: List[EvalItemResult] = []
+        for pred, ref, db, h in zip(predictions, references, db_ids, hardness_list):
+            res = self.evaluate_single(pred, ref, db, hardness=h)
+            results.append(res)
+
+        total = n
+        em_correct = sum(1 for r in results if r.em_correct)
+        ex_correct = sum(1 for r in results if r.ex_correct)
+
+        overall_em = round((em_correct / total * 100.0) if total > 0 else 0.0, 2)
+        overall_ex = round((ex_correct / total * 100.0) if total > 0 else 0.0, 2)
+
+        tiers = sorted(list(set(hardness_list)))
+        tier_metrics: Dict[str, Dict[str, Any]] = {}
+        for tier in tiers:
+            tier_results = [r for r in results if r.hardness == tier]
+            t_total = len(tier_results)
+            t_em = sum(1 for r in tier_results if r.e
