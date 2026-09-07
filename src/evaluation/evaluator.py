@@ -663,4 +663,25 @@ class SQLEvaluator:
         for tier in tiers:
             tier_results = [r for r in results if r.hardness == tier]
             t_total = len(tier_results)
-            t_em = sum(1 for r in tier_results if r.e
+            t_em = sum(1 for r in tier_results if r.em_correct)
+            t_ex = sum(1 for r in tier_results if r.ex_correct)
+            tier_metrics[tier] = {
+                "total": t_total,
+                "em_correct": t_em,
+                "em_percent": round((t_em / t_total * 100.0) if t_total > 0 else 0.0, 2),
+                "ex_correct": t_ex,
+                "ex_percent": round((t_ex / t_total * 100.0) if t_total > 0 else 0.0, 2),
+            }
+
+        error_counts = Counter(r.error_type for r in results if r.error_type is not None)
+
+        return {
+            "total": total,
+            "exact_match": overall_em,
+            "em_correct": em_correct,
+            "execution_accuracy": overall_ex,
+            "ex_correct": ex_correct,
+            "by_hardness": tier_metrics,
+            "error_breakdown": dict(error_counts),
+            "results": results,
+        }
