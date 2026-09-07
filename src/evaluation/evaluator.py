@@ -402,4 +402,93 @@ def compare_result_sets(
     return search(0, set(), [])
 
 
-# ------------------------
+# ---------------------------------------------------------------------------
+# Task 04 & 05: Safe Execution with Timeout & Error Categorization
+# ---------------------------------------------------------------------------
+
+def execute_query(
+    db_path: str,
+    query: str,
+    timeout: float = 3.0,
+    check_sandbox: bool = True,
+) -> ExecutionResult:
+    """Execute SQL query against SQLite database with timeout and sandboxing.
+    
+    Wraps execution in concurrent.futures with a hard timeout and connection interruption.
+    Opens DB in read-only mode. Categorizes errors into SyntaxError, RuntimeError, Timeout, SandboxViolation.
+    """
+    t0 = time.time()
+
+    if check_sandbox:
+        try:
+            query = validate_sandbox(query)
+        except SandboxViolationError as e:
+            return ExecutionResult(
+                success=False,
+                error_type="SandboxViolation",
+                error_message=str(e),
+                execution_time=round(time.time() - t0, 4),
+            )
+
+    conn_box = [None]
+
+    def _worker():
+        abs_db = os.path.abspath(db_path)
+        uri = f"file:{abs_db}?mode=ro"
+        conn = sqlite3.connect(uri, uri=True)
+        conn_box[0] = conn
+        try:
+            cur = conn.cursor()
+            cur.execute(query)
+            rows = cur.fetchall()
+            return rows
+        finally:
+            conn.close()
+
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+    future = executor.submit(_worker)
+    try:
+        data = future.result(timeout=timeout)
+        executor.shutdown(wait=False)
+        return ExecutionResult(
+            success=True,
+            data=data,
+            execution_time=round(time.time() - t0, 4),
+        )
+    except concurrent.futures.TimeoutError:
+        conn = conn_box[0]
+        if conn is not None:
+            try:
+                conn.interrupt()
+            except Exception:
+                pass
+        executor.shutdown(wait=False, cancel_futures=True)
+        return ExecutionResult(
+            success=False,
+            error_type="Timeout",
+            error_message=f"Query execution timed out after {timeout} seconds",
+            execution_time=round(time.time() - t0, 4),
+        )
+    except sqlite3.OperationalError as e:
+        executor.shutdown(wait=False)
+        msg = str(e).lower()
+        if any(k in msg for k in ("syntax error", "incomplete input", "unrecognized token")):
+            err_type = "SyntaxError"
+        else:
+            err_type = "RuntimeError"
+        return ExecutionResult(
+            success=False,
+            error_type=err_type,
+            error_message=str(e),
+            execution_time=round(time.time() - t0, 4),
+        )
+    except sqlite3.Error as e:
+        executor.shutdown(wait=False)
+        return ExecutionResult(
+            success=False,
+            error_type="RuntimeError",
+            error_message=str(e),
+            execution_time=round(time.time() - t0, 4),
+        )
+    except Exception as e:
+        executo
