@@ -555,4 +555,63 @@ class SQLEvaluator:
 
         if not gold_exec.success:
             return EvalItemResult(
-          
+                em_correct=em_correct,
+                ex_correct=False,
+                error_type="RuntimeError",
+                error_message=f"Gold SQL execution failed: {gold_exec.error_message}",
+                pred_sql=pred_sql,
+                gold_sql=gold_sql,
+                db_id=db_id,
+                hardness=hardness,
+                execution_time=gold_exec.execution_time,
+            )
+
+        pred_exec = execute_query(
+            db_path=db_path,
+            query=pred_sql,
+            timeout=self.timeout,
+            check_sandbox=True,
+        )
+
+        if not pred_exec.success:
+            return EvalItemResult(
+                em_correct=em_correct,
+                ex_correct=False,
+                error_type=pred_exec.error_type,
+                error_message=pred_exec.error_message,
+                pred_sql=pred_sql,
+                gold_sql=gold_sql,
+                db_id=db_id,
+                hardness=hardness,
+                execution_time=pred_exec.execution_time,
+            )
+
+        pred_data = pred_exec.data or []
+        gold_data = gold_exec.data or []
+
+        if len(pred_data) == 0 and len(gold_data) > 0:
+            return EvalItemResult(
+                em_correct=em_correct,
+                ex_correct=False,
+                error_type="EmptyResult",
+                error_message=f"Returned 0 rows; expected {len(gold_data)} rows",
+                pred_sql=pred_sql,
+                gold_sql=gold_sql,
+                db_id=db_id,
+                hardness=hardness,
+                execution_time=pred_exec.execution_time,
+            )
+
+        is_match = compare_result_sets(pred_data, gold_data)
+
+        if is_match:
+            return EvalItemResult(
+                em_correct=em_correct,
+                ex_correct=True,
+                error_type=None,
+                error_message=None,
+                pred_sql=pred_sql,
+                gold_sql=gold_sql,
+                db_id=db_id,
+                hardness=hardness,
+           
