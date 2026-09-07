@@ -76,3 +76,4 @@ SQL_Engine/
 │       └── run_pipeline.py           # Unified runner (Tasks 02-09)
 │
 ├── src/                           
+<!-- log: 2026-09-07 15:15:45 - feat(evaluator): reject destructive SQL statements (INSERT, UPDATE, DELETE, DROP, ALTER) -->
