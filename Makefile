@@ -17,3 +17,5 @@ sanity:
 	python scripts/run_sanity.py
 smoke-test:
 	python scripts/smoke_test_pipeline.py
+eval:
+	python scripts/run_eval.py
