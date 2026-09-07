@@ -81,3 +81,5 @@ SQL_Engine/
 <!-- log: 2026-09-07 16:25:00 - fix(evaluator): allow keywords in string literals or comments without false positives -->
 
 <!-- log: 2026-09-07 17:35:22 - feat(evaluator): implement SQLEvaluator and evaluate_batch with complexity tiers -->
+
+<!-- log: 2026-09-07 22:05:12 - refactor(inference): export Text2SQLEngine in src.inference.__init__ -->
