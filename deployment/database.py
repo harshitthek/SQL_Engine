@@ -166,5 +166,52 @@ def adapt_sql_dialect(sql: str, dialect: str = "sqlite") -> str:
                 r"\btype\s*=\s*['\"]table['\"]",
                 "table_schema = DATABASE() AND table_type = 'BASE TABLE'",
                 adapted,
-                flags=re.IGNORECASE
-# [WIP: database engine]
+                flags=re.IGNORECASE,
+            )
+            adapted = re.sub(
+                r"\btype\s*=\s*['\"]view['\"]",
+                "table_schema = DATABASE() AND table_type = 'VIEW'",
+                adapted,
+                flags=re.IGNORECASE,
+            )
+            adapted = re.sub(
+                r"\btype\s*IN\s*\(\s*['\"]table['\"]\s*,\s*['\"]view['\"]\s*\)",
+                "table_schema = DATABASE() AND table_type IN ('BASE TABLE', 'VIEW')",
+                adapted,
+                flags=re.IGNORECASE,
+            )
+            if "table_schema" not in adapted.lower():
+                where_match = re.search(r'\bWHERE\b', adapted, flags=re.IGNORECASE)
+                if where_match:
+                    idx = where_match.end()
+                    adapted = adapted[:idx] + " table_schema = DATABASE() AND" + adapted[idx:]
+                else:
+                    clause_match = re.search(r'\b(ORDER\s+BY|GROUP\s+BY|HAVING|LIMIT)\b|;', adapted, flags=re.IGNORECASE)
+                    if clause_match:
+                        idx = clause_match.start()
+                        matched_str = clause_match.group(0)
+                        if matched_str == ";":
+                            adapted = adapted[:idx].rstrip() + " WHERE table_schema = DATABASE();"
+                        else:
+                            adapted = adapted[:idx].rstrip() + " WHERE table_schema = DATABASE() " + adapted[idx:].lstrip()
+                    else:
+                        adapted = adapted.rstrip() + " WHERE table_schema = DATABASE()"
+            adapted = re.sub(r'\b(?<!table_)name\b', 'table_name', adapted, flags=re.IGNORECASE)
+            adapted = re.sub(r'\btbl_name\b', 'table_name', adapted, flags=re.IGNORECASE)
+            adapted = re.sub(r'\b(?<!table_)type\b', 'table_type', adapted, flags=re.IGNORECASE)
+
+        return adapted
+
+    return sql
+
+
+class DatabaseManager:
+
+    SUPPORTED_DATABASES = {
+        "sqlite",
+        "postgresql",
+        "mysql",
+        "supabase",
+    }
+
+    READ_ON
