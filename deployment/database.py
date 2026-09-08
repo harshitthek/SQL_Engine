@@ -524,4 +524,111 @@ class DatabaseManager:
             )
 
         # Strip line comments (-- ...) and block comments (/* ... */)
-        cleaned_sql
+        cleaned_sql = re.sub(r"--.*?$", "", sql, flags=re.MULTILINE)
+        cleaned_sql = re.sub(r"/\*.*?\*/", "", cleaned_sql, flags=re.DOTALL).strip()
+
+        if not cleaned_sql:
+            raise ValueError(
+                "SQL query cannot be empty."
+            )
+
+        # Strip string literals to safely inspect structure and keywords without false positives
+        # (e.g. semicolons or keywords like 'update'/'delete' inside string literals)
+        code_without_literals = re.sub(r"'(?:''|[^'])*'", "''", cleaned_sql)
+        code_without_literals = re.sub(r'"(?:""|[^"])*"', '""', code_without_literals)
+
+        statements = [
+            statement.strip()
+            for statement in code_without_literals.split(";")
+            if statement.strip()
+        ]
+
+        if len(statements) > 1:
+            raise ValueError(
+                "Multiple SQL statements are not allowed."
+            )
+
+        normalized = code_without_literals.upper()
+
+        first_token = (
+            normalized.split()[0]
+            if normalized.split()
+            else ""
+        )
+
+        if first_token not in cls.READ_ONLY_KEYWORDS:
+            raise ValueError(
+                "Only SELECT, WITH and EXPLAIN queries "
+                "are allowed."
+            )
+
+        for keyword in cls.BLOCKED_KEYWORDS:
+            if re.search(r"\b" + keyword + r"\b", normalized):
+                raise ValueError(
+                    f"Blocked SQL operation detected: {keyword}"
+                )
+
+    def execute_query(
+        self,
+        sql: str,
+        max_rows: int = 1000,
+    ) -> dict[str, Any]:
+
+        engine = self.connect()
+
+        effective_dialect = self.config.db_type
+        if hasattr(engine, "dialect") and hasattr(engine.dialect, "name"):
+            effective_dialect = engine.dialect.name
+
+        adapted_sql = adapt_sql_dialect(sql, dialect=effective_dialect)
+        self.validate_sql(adapted_sql)
+
+        try:
+            with engine.connect() as connection:
+
+                result = connection.execute(
+                    text(adapted_sql)
+                )
+
+                rows = result.fetchmany(max_rows)
+
+                columns = list(
+                    result.keys()
+                )
+
+                serialized_rows = [
+                    list(row)
+                    for row in rows
+                ]
+
+                return {
+                    "columns": columns,
+                    "rows": serialized_rows,
+                    "row_count": len(
+                        serialized_rows
+                    ),
+                }
+
+        except SQLAlchemyError as exc:
+
+            raise RuntimeError(
+                f"SQL execution failed: {exc}"
+            ) from exc
+
+    def close(self) -> None:
+
+        if self.engine is not None:
+            self.engine.dispose()
+            self.engine = None
+
+    def __enter__(self):
+        self.connect()
+        return self
+
+    def __exit__(
+        self,
+        exc_type,
+        exc_value,
+        traceback,
+    ):
+        self.close()
