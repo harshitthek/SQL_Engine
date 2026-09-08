@@ -278,4 +278,65 @@ class DatabaseManager:
         if db_type == "supabase":
             if not self.config.host or not str(self.config.host).strip() or self.config.password is None:
                 raise ValueError(
-                    "host, port, username and
+                    "host, port, username and password are required "
+                    f"for {db_type}."
+                )
+
+            port = self.config.port if self.config.port is not None else 5432
+            database = (
+                self.config.database.strip().lstrip("/")
+                if (self.config.database and self.config.database.strip())
+                else "postgres"
+            )
+            username = (
+                self.config.username.strip()
+                if (self.config.username and self.config.username.strip())
+                else "postgres"
+            )
+
+            if "sslmode=" in database:
+                database_with_ssl = re.sub(r"sslmode=[^&]*", "sslmode=require", database)
+            else:
+                sep = "&" if "?" in database else "?"
+                database_with_ssl = f"{database}{sep}sslmode=require"
+
+            encoded_username = quote_plus(username)
+            encoded_password = quote_plus(str(self.config.password))
+
+            return (
+                "postgresql://"
+                f"{encoded_username}:"
+                f"{encoded_password}@"
+                f"{self.config.host}:"
+                f"{port}/"
+                f"{database_with_ssl}"
+            )
+
+        if db_type == "postgresql":
+            return (
+                "postgresql://"
+                f"{self.config.username}:"
+                f"{self.config.password}@"
+                f"{self.config.host}:"
+                f"{self.config.port}/"
+                f"{self.config.database}"
+            )
+
+        if db_type == "mysql":
+            return (
+                "mysql+pymysql://"
+                f"{self.config.username}:"
+                f"{self.config.password}@"
+                f"{self.config.host}:"
+                f"{self.config.port}/"
+                f"{self.config.database}"
+            )
+
+        raise ValueError(
+            f"Unsupported database type: {db_type}"
+        )
+
+    def connect(self) -> Engine:
+
+        if self.engine is not None:
+            return self
