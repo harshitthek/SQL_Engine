@@ -339,4 +339,69 @@ class DatabaseManager:
     def connect(self) -> Engine:
 
         if self.engine is not None:
-            return self
+            return self.engine
+
+        connection_url = self._build_connection_url()
+
+        try:
+            self.engine = create_engine(
+                connection_url,
+                pool_pre_ping=True,
+                pool_recycle=3600,
+            )
+
+            # Immediately verify connectivity.
+            with self.engine.connect() as connection:
+                connection.execute(text("SELECT 1"))
+
+            return self.engine
+
+        except (SQLAlchemyError, ImportError, ModuleNotFoundError) as exc:
+            self.engine = None
+
+            raise ConnectionError(
+                f"Failed to connect to database: {exc}"
+            ) from exc
+
+    def test_connection(self) -> bool:
+
+        try:
+            engine = self.connect()
+            with engine.connect() as connection:
+                connection.execute(text("SELECT 1"))
+            return True
+        except (ConnectionError, SQLAlchemyError, ImportError, ModuleNotFoundError, Exception):
+            self.engine = None
+            return False
+
+    def _get_target_schema(self) -> Optional[str]:
+        if self.config.db_type and self.config.db_type.strip().lower() in ("supabase", "postgresql", "postgres", "psql"):
+            return "public"
+        return None
+
+    def get_table_names(self) -> list[str]:
+
+        engine = self.connect()
+        inspector = inspect(engine)
+        target_schema = self._get_target_schema()
+        kwargs = {"schema": target_schema} if target_schema else {}
+
+        return inspector.get_table_names(**kwargs)
+
+    def get_schema(self) -> str:
+
+        engine = self.connect()
+        inspector = inspect(engine)
+        target_schema = self._get_target_schema()
+        kwargs = {"schema": target_schema} if target_schema else {}
+
+        tables = inspector.get_table_names(**kwargs)
+
+        if not tables:
+            return "-- Database contains no tables."
+
+        schema_parts: list[str] = []
+
+        for table_name in tables:
+
+            columns = inspector.get_columns(table_name, 
