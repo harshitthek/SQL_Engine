@@ -326,4 +326,103 @@ class DatabaseManager:
             return (
                 "mysql+pymysql://"
                 f"{self.config.username}:"
-                f"{self.config.passw
+                f"{self.config.password}@"
+                f"{self.config.host}:"
+                f"{self.config.port}/"
+                f"{self.config.database}"
+            )
+
+        raise ValueError(
+            f"Unsupported database type: {db_type}"
+        )
+
+    def connect(self) -> Engine:
+
+        if self.engine is not None:
+            return self.engine
+
+        connection_url = self._build_connection_url()
+
+        try:
+            self.engine = create_engine(
+                connection_url,
+                pool_pre_ping=True,
+                pool_recycle=3600,
+            )
+
+            # Immediately verify connectivity.
+            with self.engine.connect() as connection:
+                connection.execute(text("SELECT 1"))
+
+            return self.engine
+
+        except (SQLAlchemyError, ImportError, ModuleNotFoundError) as exc:
+            self.engine = None
+
+            raise ConnectionError(
+                f"Failed to connect to database: {exc}"
+            ) from exc
+
+    def test_connection(self) -> bool:
+
+        try:
+            engine = self.connect()
+            with engine.connect() as connection:
+                connection.execute(text("SELECT 1"))
+            return True
+        except (ConnectionError, SQLAlchemyError, ImportError, ModuleNotFoundError, Exception):
+            self.engine = None
+            return False
+
+    def _get_target_schema(self) -> Optional[str]:
+        if self.config.db_type and self.config.db_type.strip().lower() in ("supabase", "postgresql", "postgres", "psql"):
+            return "public"
+        return None
+
+    def get_table_names(self) -> list[str]:
+
+        engine = self.connect()
+        inspector = inspect(engine)
+        target_schema = self._get_target_schema()
+        kwargs = {"schema": target_schema} if target_schema else {}
+
+        return inspector.get_table_names(**kwargs)
+
+    def get_schema(self) -> str:
+
+        engine = self.connect()
+        inspector = inspect(engine)
+        target_schema = self._get_target_schema()
+        kwargs = {"schema": target_schema} if target_schema else {}
+
+        tables = inspector.get_table_names(**kwargs)
+
+        if not tables:
+            return "-- Database contains no tables."
+
+        schema_parts: list[str] = []
+
+        for table_name in tables:
+
+            columns = inspector.get_columns(table_name, **kwargs)
+            primary_key = inspector.get_pk_constraint(table_name, **kwargs)
+            foreign_keys = inspector.get_foreign_keys(table_name, **kwargs)
+
+            pk_columns = set(
+                primary_key.get("constrained_columns") or []
+            )
+
+            column_lines: list[str] = []
+
+            for column in columns:
+
+                column_name = column["name"]
+                column_type = str(column["type"])
+
+                line = f"    {column_name} {column_type}"
+
+                if column_name in pk_columns:
+                    line += " PRIMARY KEY"
+
+                if not column.get("nullable", True):
+                    line += " N
