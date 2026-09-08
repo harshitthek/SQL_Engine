@@ -79,4 +79,11 @@ SQL_Engine/
 │   ├── training/                     # QLoRA Training
 │   │   ├── train_qlora.py            # 4-bit NF4 fine-tuning with PEFT + TRL
 │   │   ├── eval_metrics.py           # Exact Match evaluation & mid-training callback
-│   │   └── merge_model.py            # LoRA merge & SHA-256
+│   │   └── merge_model.py            # LoRA merge & SHA-256 metadata export
+│   ├── inference/                    # Inference Engine
+│   │   └── engine.py                 # Text2SQLEngine (used by eval scripts)
+│   └── evaluation/                   # SQL Evaluator
+│       └── evaluator.py              # EM, EX, timeout, sandbox, error categorization
+│
+├── scripts/                          # Orchestration Utilities
+│   ├── run_eval.py                   # B
