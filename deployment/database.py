@@ -425,4 +425,103 @@ class DatabaseManager:
                     line += " PRIMARY KEY"
 
                 if not column.get("nullable", True):
-                    line += " N
+                    line += " NOT NULL"
+
+                column_lines.append(line)
+
+            table_block = (
+                f"CREATE TABLE {table_name} (\n"
+                + ",\n".join(column_lines)
+                + "\n);"
+            )
+
+            schema_parts.append(table_block)
+
+            # Foreign-key relationships
+            for fk in foreign_keys:
+
+                constrained_columns = fk.get(
+                    "constrained_columns",
+                    [],
+                )
+
+                referred_table = fk.get(
+                    "referred_table"
+                )
+
+                referred_columns = fk.get(
+                    "referred_columns",
+                    [],
+                )
+
+                referred_schema = fk.get(
+                    "referred_schema"
+                )
+
+                ref_target = (
+                    f"{referred_schema}.{referred_table}"
+                    if (referred_schema and referred_schema != target_schema)
+                    else referred_table
+                )
+
+                for source_column, target_column in zip(
+                    constrained_columns,
+                    referred_columns,
+                ):
+                    schema_parts.append(
+                        f"-- FOREIGN KEY: "
+                        f"{table_name}.{source_column} "
+                        f"REFERENCES "
+                        f"{ref_target}.{target_column}"
+                    )
+
+        return "\n\n".join(schema_parts)
+
+    def get_schema_dict(self) -> dict[str, Any]:
+
+        engine = self.connect()
+        inspector = inspect(engine)
+        target_schema = self._get_target_schema()
+        kwargs = {"schema": target_schema} if target_schema else {}
+
+        result: dict[str, Any] = {}
+
+        for table_name in inspector.get_table_names(**kwargs):
+
+            columns = inspector.get_columns(table_name, **kwargs)
+            primary_key = inspector.get_pk_constraint(table_name, **kwargs)
+            foreign_keys = inspector.get_foreign_keys(table_name, **kwargs)
+
+            result[table_name] = {
+                "columns": [
+                    {
+                        "name": column["name"],
+                        "type": str(column["type"]),
+                        "nullable": column.get(
+                            "nullable",
+                            True,
+                        ),
+                    }
+                    for column in columns
+                ],
+                "primary_key": (
+                    primary_key.get(
+                        "constrained_columns",
+                        [],
+                    )
+                ),
+                "foreign_keys": foreign_keys,
+            }
+
+        return result
+
+    @classmethod
+    def validate_sql(cls, sql: str) -> None:
+
+        if not sql or not sql.strip():
+            raise ValueError(
+                "SQL query cannot be empty."
+            )
+
+        # Strip line comments (-- ...) and block comments (/* ... */)
+        cleaned_sql
