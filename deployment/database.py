@@ -214,4 +214,68 @@ class DatabaseManager:
         "supabase",
     }
 
-    READ_ON
+    READ_ONLY_KEYWORDS = {
+        "SELECT",
+        "WITH",
+        "EXPLAIN",
+    }
+
+    BLOCKED_KEYWORDS = {
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "DROP",
+        "ALTER",
+        "CREATE",
+        "TRUNCATE",
+        "GRANT",
+        "REVOKE",
+        "ATTACH",
+        "DETACH",
+        "VACUUM",
+        "PRAGMA",
+    }
+
+    def __init__(self, config: DatabaseConfig):
+        self.config = config
+        self.engine: Optional[Engine] = None
+
+    def _build_connection_url(self) -> str:
+
+        if self.config.url:
+            if self.config.db_type and self.config.db_type.strip().lower() == "supabase":
+                if "sslmode=" in self.config.url:
+                    return re.sub(r"sslmode=[^&]*", "sslmode=require", self.config.url)
+                delimiter = "&" if "?" in self.config.url else "?"
+                return f"{self.config.url}{delimiter}sslmode=require"
+            return self.config.url
+
+        db_type = (self.config.db_type or "").strip().lower()
+
+        if db_type not in self.SUPPORTED_DATABASES:
+            raise ValueError(
+                f"Unsupported database type: {self.config.db_type}. "
+                f"Supported types: {sorted(self.SUPPORTED_DATABASES)}"
+            )
+
+        if db_type == "sqlite":
+            return f"sqlite:///{self.config.database}"
+
+        if db_type in ("postgresql", "mysql"):
+            if not all(
+                [
+                    self.config.host,
+                    self.config.port,
+                    self.config.username,
+                    self.config.password is not None,
+                ]
+            ):
+                raise ValueError(
+                    "host, port, username and password are required "
+                    f"for {db_type}."
+                )
+
+        if db_type == "supabase":
+            if not self.config.host or not str(self.config.host).strip() or self.config.password is None:
+                raise ValueError(
+                    "host, port, username and
