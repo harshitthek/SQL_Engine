@@ -395,4 +395,54 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 
 @app.exception_handler(HTTPException)
-async def http_exception_handler(re
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """Formats HTTPExceptions into standardized ErrorResponse structure."""
+    req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
+
+    if isinstance(exc.detail, dict) and "error_code" in exc.detail:
+        payload = {
+            "error_code": exc.detail.get("error_code", ErrorCode.INVALID_REQUEST),
+            "message": exc.detail.get("message", "An error occurred."),
+            "request_id": req_id,
+        }
+    else:
+        status_to_code = {
+            status.HTTP_400_BAD_REQUEST: ErrorCode.INVALID_REQUEST,
+            status.HTTP_429_TOO_MANY_REQUESTS: ErrorCode.RATE_LIMITED,
+            status.HTTP_503_SERVICE_UNAVAILABLE: ErrorCode.MODEL_NOT_READY,
+            status.HTTP_500_INTERNAL_SERVER_ERROR: ErrorCode.INTERNAL_SERVER_ERROR,
+        }
+        error_code = status_to_code.get(exc.status_code, "HTTP_ERROR")
+        payload = {
+            "error_code": error_code,
+            "message": str(exc.detail),
+            "request_id": req_id,
+        }
+
+    return JSONResponse(
+        status_code=exc.status_code,
+        headers={"X-Request-ID": req_id},
+        content=payload,
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """Catches unhandled server exceptions, logs trace, and returns 500 ErrorResponse."""
+    req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
+    logger.error(f"[{req_id}] Unhandled server exception: {exc}", exc_info=True)
+
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        headers={"X-Request-ID": req_id},
+        content={
+            "error_code": ErrorCode.INTERNAL_SERVER_ERROR,
+            "message": "An unexpected internal server error occurred.",
+            "request_id": req_id,
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# API Routes
+# ----------------------------------------------------------------
