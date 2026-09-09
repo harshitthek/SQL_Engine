@@ -298,4 +298,50 @@ app.add_middleware(
 )
 
 
-# --------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Middleware: Request ID Correlation
+# ---------------------------------------------------------------------------
+
+@app.middleware("http")
+async def request_id_middleware(request: Request, call_next):
+    """
+    Extracts or generates an X-Request-ID for distributed tracing.
+    Stores the ID in request.state and propagates it in the response header.
+    """
+    req_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+    request.state.request_id = req_id
+
+    response: Response = await call_next(request)
+    response.headers["X-Request-ID"] = req_id
+    return response
+
+
+# ---------------------------------------------------------------------------
+# Exception Handlers
+# ---------------------------------------------------------------------------
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
+    """
+    Formats slowapi RateLimitExceeded exceptions into standard ErrorResponse structure.
+    Returns HTTP 429 Too Many Requests with correlation ID and Retry-After header.
+    """
+    req_id = getattr(request.state, "request_id", None) or request.headers.get("X-Request-ID") or str(uuid.uuid4())
+    client_ip = get_remote_address(request)
+    logger.warning(
+        f"[{req_id}] rate_limit_exceeded ip={client_ip} endpoint={request.url.path}"
+    )
+
+    retry_after_seconds = 10
+    try:
+        # Determine fallback window duration from the exceeded limit if possible
+        if hasattr(exc, "limit") and exc.limit and hasattr(exc.limit, "limit"):
+            rate_item = exc.limit.limit
+            if hasattr(rate_item, "get_expiry"):
+                retry_after_seconds = max(1, int(rate_item.get_expiry()))
+
+        view_rate_limit = getattr(request.state, "view_rate_limit", None)
+        l = getattr(request.app.state, "limiter", None)
+        if l:
+            if not view_rate_limit and hasattr(exc, "limit") and exc.limit:
+                view_rate_limit = (exc.limit.limit, [
