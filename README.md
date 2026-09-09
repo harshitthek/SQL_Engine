@@ -104,4 +104,22 @@ SQL_Engine/
 │       └── text2sql-v1/              # Merged standalone model
 │
 ├── artifacts/                        # Evaluation Reports
-│   ├── eval_error_analysis.md 
+│   ├── eval_error_analysis.md        # Top failure patterns
+│   ├── eval_metrics.json             # EM & EX scores
+│   └── dev_predictions.json          # Model predictions
+│
+└── configs/                          # Environment Specs
+    └── kaggle_env_spec.txt           # Kaggle Dual T4 hardware audit
+```
+
+---
+
+## 🚀 Quickstart
+
+### 1. Installation
+
+```bash
+# Deployment only (inference + serving)
+make install
+
+# Full (deploymen
