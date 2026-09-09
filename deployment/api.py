@@ -252,5 +252,50 @@ async def lifespan(app: FastAPI):
         import torch
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
-        elif hasa
-# [WIP: FastAPI serving gateway]
+        elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+            torch.mps.empty_cache()
+    except Exception:
+        pass
+    logger.info("Shutdown sequence finished cleanly.")
+
+
+# ---------------------------------------------------------------------------
+# Rate Limiter & FastAPI Application Declaration
+# ---------------------------------------------------------------------------
+
+# Concurrency & Deployment Architecture:
+# The application is designed to run as a single FastAPI worker process because the Text-to-SQL
+# model occupies dedicated hardware accelerator (GPU / MPS) memory. The in-memory Limiter is
+# appropriate for this single-process deployment without external infrastructure.
+# NOTE: If this service is horizontally scaled across multiple worker processes or replica containers,
+# the rate limiter storage must be migrated to a shared backend (e.g. Redis via storage_uri)
+# or enforced at an edge reverse proxy / API gateway layer (e.g. Nginx, Cloudflare).
+#
+# Client IP / Reverse Proxy Handling:
+# get_remote_address inspects request.client.host. Arbitrary client-supplied headers like
+# X-Forwarded-For or X-Real-IP are NOT blindly trusted to prevent IP spoofing attacks.
+# When deployed behind a reverse proxy, the proxy must be configured to pass the real client IP,
+# and Uvicorn should be run with trusted proxy forwarding enabled (--proxy-headers).
+limiter = Limiter(key_func=get_remote_address)
+
+app = FastAPI(
+    title="Text-to-SQL Inference API",
+    description=(
+        "Production-grade Text-to-SQL model serving API with serialized hardware "
+        "inference, bounded queue protection, and health monitoring."
+    ),
+    version="1.0.0",
+    lifespan=lifespan,
+)
+app.state.limiter = limiter
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=os.getenv("CORS_ORIGINS", "*").split(","),
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# --------------------------------------------------------------------
