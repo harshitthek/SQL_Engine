@@ -344,4 +344,55 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONRe
         l = getattr(request.app.state, "limiter", None)
         if l:
             if not view_rate_limit and hasattr(exc, "limit") and exc.limit:
-                view_rate_limit = (exc.limit.limit, [
+                view_rate_limit = (exc.limit.limit, [client_ip])
+
+            if view_rate_limit:
+                window_stats = l.limiter.get_window_stats(view_rate_limit[0], *view_rate_limit[1])
+                reset_time = getattr(window_stats, "reset_time", None)
+                if reset_time is None and isinstance(window_stats, (tuple, list)) and len(window_stats) > 0:
+                    reset_time = window_stats[0]
+                if reset_time is not None:
+                    retry_after_seconds = max(1, math.ceil(reset_time - time.time()))
+    except Exception:
+        pass
+
+    return JSONResponse(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        headers={
+            "X-Request-ID": req_id,
+            "Retry-After": str(retry_after_seconds),
+        },
+        content={
+            "error_code": ErrorCode.RATE_LIMITED,
+            "message": "Too many requests from this IP. Please try again later.",
+            "request_id": req_id,
+        },
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Formats Pydantic 422 validation errors into standard ErrorResponse format."""
+    req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
+    error_messages = []
+    for error in exc.errors():
+        location = " -> ".join(str(loc) for loc in error.get("loc", []))
+        message = error.get("msg", "Invalid field")
+        error_messages.append(f"{location}: {message}")
+
+    joined_message = "; ".join(error_messages) if error_messages else "Request validation failed."
+    logger.warning(f"[{req_id}] 422 Validation Error: {joined_message}")
+
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        headers={"X-Request-ID": req_id},
+        content={
+            "error_code": ErrorCode.VALIDATION_ERROR,
+            "message": joined_message,
+            "request_id": req_id,
+        },
+    )
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(re
