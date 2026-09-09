@@ -92,4 +92,10 @@ SQL_Engine/
 │   └── run_*.py                      # Individual task runners
 │
 ├── tests/                            # Test Suite
-│   ├── test_pipel
+│   ├── test_pipeline.py              # Data pipeline tests
+│   └── test_evaluator.py             # SQL evaluator tests (47 tests)
+│
+├── notebooks/                        # Kaggle Training Notebook
+│   └── sql_engine.ipynb              # Dual T4 DDP training (Tasks 01-10)
+│
+├── models/                           # Tra
