@@ -86,4 +86,10 @@ SQL_Engine/
 │       └── evaluator.py              # EM, EX, timeout, sandbox, error categorization
 │
 ├── scripts/                          # Orchestration Utilities
-│   ├── run_eval.py                   # B
+│   ├── run_eval.py                   # Batch evaluation on Spider dev set
+│   ├── smoke_test_pipeline.py        # Fast training smoke test
+│   ├── generate_notebook.py          # Kaggle notebook generator
+│   └── run_*.py                      # Individual task runners
+│
+├── tests/                            # Test Suite
+│   ├── test_pipel
