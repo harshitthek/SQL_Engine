@@ -123,3 +123,4 @@ SQL_Engine/
 make install
 
 # Full (deploymen
+<!-- log: 2026-09-09 22:40:00 - feat(ui): add credential redaction for sensitive connection strings and logs -->
