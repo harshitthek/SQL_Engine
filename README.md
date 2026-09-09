@@ -98,4 +98,10 @@ SQL_Engine/
 ├── notebooks/                        # Kaggle Training Notebook
 │   └── sql_engine.ipynb              # Dual T4 DDP training (Tasks 01-10)
 │
-├── models/                           # Tra
+├── models/                           # Trained Weights (git-ignored, Docker volume)
+│   └── text2sql-qwen-pytorch-v1-v1/
+│       ├── qlora-adapter/            # LoRA adapter checkpoints
+│       └── text2sql-v1/              # Merged standalone model
+│
+├── artifacts/                        # Evaluation Reports
+│   ├── eval_error_analysis.md 
