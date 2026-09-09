@@ -445,4 +445,226 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 # ---------------------------------------------------------------------------
 # API Routes
-# ----------------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+@app.get(
+    "/health",
+    response_model=HealthResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Health & Hardware Status",
+    tags=["System"],
+    responses={
+        200: {"model": HealthResponse, "description": "Service health and device report."},
+    },
+)
+async def health(request: Request) -> HealthResponse:
+    """
+    Check the health of the Text-to-SQL inference server.
+
+    Returns:
+        - status: 'healthy' if model singleton is loaded and ready; 'degraded' otherwise.
+        - model_version: Identifier of the deployed model.
+        - uptime_seconds: Server uptime since startup.
+        - device: Compute accelerator ('cuda', 'mps', 'cpu', or 'none').
+    """
+    uptime = round(time.time() - getattr(request.app.state, "start_time", time.time()), 2)
+    is_ready = getattr(request.app.state, "is_ready", False)
+    device = getattr(request.app.state, "device", "none")
+    startup_error = getattr(request.app.state, "startup_error", None)
+
+    return HealthResponse(
+        status="healthy" if is_ready else "degraded",
+        model_version=MODEL_VERSION,
+        uptime_seconds=uptime,
+        device=device,
+        error=startup_error if not is_ready else None,
+    )
+
+
+@app.post(
+    "/v1/tosql",
+    response_model=ToSQLResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Generate SQL from Natural Language",
+    tags=["Inference"],
+    responses={
+        200: {"model": ToSQLResponse, "description": "Successfully generated SQL."},
+        400: {"model": ErrorResponse, "description": "Bad or malformed request payload."},
+        422: {"model": ErrorResponse, "description": "Field validation failure on input."},
+        429: {
+            "model": ErrorResponse,
+            "description": "Rate limit exceeded (per-IP limits: 10 requests/minute, 3 requests/10 seconds burst).",
+        },
+        503: {
+            "model": ErrorResponse,
+            "description": "Service unavailable (model not ready or inference queue timeout).",
+        },
+        500: {"model": ErrorResponse, "description": "Unexpected inference failure on server."},
+    },
+)
+@limiter.limit(RATE_LIMIT_PER_MINUTE)
+@limiter.limit(RATE_LIMIT_BURST)
+async def tosql(
+    payload: ToSQLRequest,
+    request: Request,
+) -> ToSQLResponse:
+    """
+    Translates a natural language question into an executable SQL query given a schema.
+
+    - **Rate Limiting**: Enforces per-client-IP rate limits (10/min, 3/10s burst) to prevent hardware abuse.
+    - **Inference Lock**: Serializes hardware accelerator access to prevent GPU OOM crashes.
+    - **Queue Timeout**: Rejects requests if waiting for the lock exceeds 30 seconds with 503 SERVICE_BUSY.
+    - **Model Readiness**: Immediately returns 503 MODEL_NOT_READY if model failed to load.
+    - **Execution Limits**: Strict server-side parameters (max_new_tokens=256, temperature=0.0).
+    """
+    req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
+
+    # 1. Verify model readiness (fail fast if degraded)
+    if not getattr(request.app.state, "is_ready", False) or request.app.state.engine is None:
+        startup_err = getattr(request.app.state, "startup_error", None)
+        err_msg = "Text-to-SQL model is not loaded or currently unavailable."
+        if startup_err:
+            err_msg += f" (Failure reason: {startup_err})"
+        logger.warning(f"[{req_id}] Inference rejected: {err_msg}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "error_code": ErrorCode.MODEL_NOT_READY,
+                "message": err_msg,
+            },
+        )
+
+    # 2. Acquire lock with bounded wait protection
+    lock: asyncio.Lock = request.app.state.inference_lock
+    try:
+        await asyncio.wait_for(
+            lock.acquire(),
+            timeout=INFERENCE_QUEUE_TIMEOUT_SECONDS,
+        )
+    except asyncio.TimeoutError:
+        logger.warning(
+            f"[{req_id}] Inference queue wait exceeded {INFERENCE_QUEUE_TIMEOUT_SECONDS}s limit. Server busy."
+        )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "error_code": ErrorCode.SERVICE_BUSY,
+                "message": (
+                    f"Inference queue timeout: server is currently saturated "
+                    f"({INFERENCE_QUEUE_TIMEOUT_SECONDS}s wait limit exceeded)."
+                ),
+            },
+        )
+
+    # 3. Perform synchronized inference offloaded to worker thread
+    try:
+        t_start = time.perf_counter()
+
+        sql = await asyncio.to_thread(
+            request.app.state.engine.generate_sql,
+            question=payload.question,
+            schema=payload.schema,
+            dialect=payload.dialect or "sqlite",
+            max_new_tokens=SERVER_MAX_NEW_TOKENS,
+            temperature=SERVER_TEMPERATURE,
+        )
+
+        elapsed_ms = round((time.perf_counter() - t_start) * 1000.0, 2)
+        logger.info(f"[{req_id}] SQL generated in {elapsed_ms}ms (model={MODEL_VERSION})")
+
+        return ToSQLResponse(
+            request_id=req_id,
+            sql=sql,
+            model=MODEL_VERSION,
+            generation_time_ms=elapsed_ms,
+        )
+
+    except Exception as exc:
+        logger.error(f"[{req_id}] Model inference failed during generation: {exc}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "error_code": ErrorCode.INFERENCE_FAILED,
+                "message": f"Inference execution failed: {str(exc)}",
+            },
+        )
+    finally:
+        # Guarantee lock is released for subsequent queued requests
+        lock.release()
+
+
+@app.post(
+    "/v1/reload",
+    response_model=HealthResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Reload Model Weights",
+    tags=["System"],
+)
+async def reload_model(request: Request) -> HealthResponse:
+    """
+    Trigger dynamic re-initialization of the Text2SQLEngine model.
+    Allows recovering from degraded mode without restarting the server process.
+
+    Protected by RELOAD_SECRET env var when set. Requests must include
+    a matching X-Reload-Secret header.
+    """
+    req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
+
+    # Optional secret-based protection for production environments
+    reload_secret = os.getenv("RELOAD_SECRET")
+    if reload_secret:
+        provided = request.headers.get("X-Reload-Secret", "")
+        if provided != reload_secret:
+            logger.warning(f"[{req_id}] Reload rejected: invalid or missing X-Reload-Secret.")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "error_code": "FORBIDDEN",
+                    "message": "Invalid or missing reload secret.",
+                },
+            )
+
+    logger.info(f"[{req_id}] Manual model reload requested.")
+    lock: Optional[asyncio.Lock] = getattr(request.app.state, "inference_lock", None)
+    if lock:
+        async with lock:
+            try:
+                # Release existing engine and clear hardware accelerator cache before reloading
+                request.app.state.engine = None
+                request.app.state.is_ready = False
+                import gc
+                gc.collect()
+                try:
+                    import torch
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                    elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+                        torch.mps.empty_cache()
+                except Exception:
+                    pass
+
+                from prediction import Text2SQLEngine
+                engine = await asyncio.to_thread(Text2SQLEngine)
+                request.app.state.engine = engine
+                request.app.state.is_ready = True
+                request.app.state.device = getattr(engine, "device", "unknown")
+                request.app.state.startup_error = None
+                logger.info(f"[{req_id}] Model reloaded successfully on device: '{request.app.state.device}'.")
+            except Exception as exc:
+                logger.error(f"[{req_id}] Failed to reload model: {exc}", exc_info=True)
+                request.app.state.engine = None
+                request.app.state.is_ready = False
+                request.app.state.device = "none"
+                request.app.state.startup_error = str(exc)
+
+    return await health(request)
+
+
+if __name__ == "__main__":
+    import os
+    import uvicorn
+
+    host = os.getenv("API_HOST", "0.0.0.0")
+    port = int(os.getenv("API_PORT", 8000))
+    logger.info(f"Starting FastAPI Inference Gateway on {host}:{port}")
+    uvicorn.run("api:app", host=host, port=port, reload=False, workers=1)
