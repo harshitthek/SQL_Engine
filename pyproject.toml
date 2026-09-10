@@ -1,3 +1,21 @@
+[project]
+name = "sql-engine"
+version = "1.0.0"
+description = "Production Text-to-SQL engine fine-tuned on Spider benchmark with Qwen2.5-Coder-1.5B"
+requires-python = ">=3.11"
+readme = "README.md"
+license = {text = "MIT"}
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
 [tool.mypy]
 python_version = "3.11"
 strict = true
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
