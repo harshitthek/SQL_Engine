@@ -128,7 +128,7 @@ def direct_generate_sql(question: str, schema: str, dialect: str = "sqlite") -> 
 
 SAMPLE_DB_PATH = "sample_company.db"
 
-REPO_URL = "https://github.com/here-2007/Text-to-SQL"
+REPO_URL = "https://github.com/here-2007/SQL_Engine"
 
 TOP_BANNER_HTML = (
     '<div id="top-announcement-banner" class="terminal-banner" '
