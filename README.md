@@ -124,3 +124,5 @@ make install
 
 # Full (deploymen
 <!-- log: 2026-09-09 22:40:00 - feat(ui): add credential redaction for sensitive connection strings and logs -->
+
+<!-- log: 2026-09-10 19:30:45 - chore(config): update environment configuration variables and templates -->
