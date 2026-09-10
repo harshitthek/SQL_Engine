@@ -122,11 +122,114 @@ SQL_Engine/
 # Deployment only (inference + serving)
 make install
 
-# Full (deploymen
-<!-- log: 2026-09-09 22:40:00 - feat(ui): add credential redaction for sensitive connection strings and logs -->
+# Full (deployment + training)
+make install-train
+```
 
-<!-- log: 2026-09-10 19:30:45 - chore(config): update environment configuration variables and templates -->
+### 2. Start the Server
 
-<!-- log: 2026-09-10 20:40:00 - security(api): configure CORS_ORIGINS env and add RELOAD_SECRET authorization -->
+```bash
+# Start FastAPI inference API (port 8000)
+make serve
 
-<!-- log: 2026-09-10 22:30:00 - chore(vcs): expand .gitignore with comprehensive model, dataset, and artifact exclusions -->
+# Start Gradio UI (port 7860, auto-starts FastAPI)
+make gradio
+
+# Or use Docker
+make docker-up
+```
+
+### 3. API Usage
+
+```bash
+# Health check
+curl http://localhost:8000/health
+
+# Generate SQL
+curl -X POST http://localhost:8000/v1/tosql \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": "How many students are there?",
+    "schema": "CREATE TABLE students (id INT, name TEXT, age INT);",
+    "dialect": "sqlite"
+  }'
+
+# Interactive API docs
+open http://localhost:8000/docs
+```
+
+### 4. Tests
+
+```bash
+# Core tests (pipeline + evaluator)
+make test
+
+# Deployment tests (API, Gradio, DB)
+make test-deployment
+
+# All tests
+make test-all
+```
+
+### 5. Training on Kaggle (Dual T4 GPUs)
+
+1. Upload `notebooks/sql_engine.ipynb` to Kaggle
+2. Select **GPU T4 x 2** accelerator
+3. Set `"SMOKE_TEST": False` in CONFIG cell for full training
+4. Click **Run All** — DDP launches automatically
+
+---
+
+## 🐳 Docker Deployment
+
+```bash
+# Build
+docker build -t sql-engine .
+
+# Run (mount model weights)
+docker run -p 8000:8000 -p 7860:7860 \
+  -v ./models:/app/models \
+  sql-engine
+
+# Or with docker compose (separate API + UI services)
+docker compose up
+```
+
+---
+
+## 🔧 Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TEXT2SQL_MODEL_PATH` | Auto-detected | Path to merged model weights |
+| `API_HOST` | `0.0.0.0` | FastAPI bind host |
+| `API_PORT` | `8000` | FastAPI port |
+| `FASTAPI_URL` | `http://127.0.0.1:8000` | URL Gradio uses to reach FastAPI |
+| `GRADIO_HOST` | `0.0.0.0` | Gradio bind host |
+| `GRADIO_PORT` | `7860` | Gradio port |
+| `CORS_ORIGINS` | `*` | Comma-separated allowed origins |
+| `RATE_LIMIT_PER_MINUTE` | `10/minute` | Per-IP rate limit |
+| `RATE_LIMIT_BURST` | `3/10seconds` | Burst rate limit |
+| `RELOAD_SECRET` | *(none)* | Secret for `/v1/reload` endpoint |
+
+Copy `.env_example` to `.env` and customize:
+```bash
+cp .env_example .env
+```
+
+---
+
+## 📊 Evaluation Results
+
+| Metric | Score |
+|--------|-------|
+| Exact Match (EM) | 44.38% |
+| Execution Accuracy (EX) | 65.00% |
+
+Evaluated on 160 Spider dev examples across all complexity tiers.
+
+---
+
+## License
+
+MIT
