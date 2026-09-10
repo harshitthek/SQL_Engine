@@ -1,0 +1,3 @@
+# Deployment dependencies — same as root requirements.txt
+# This file exists for standalone deployment/ testing.
+-r ../requirements.txt

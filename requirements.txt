@@ -1,0 +1,28 @@
+# ===========================================================
+# Text-to-SQL Engine — Deployment Dependencies
+# ===========================================================
+# Minimal set required to run the production inference server
+# (FastAPI + Gradio + Model). For training dependencies, use:
+#   pip install -r requirements-train.txt
+# ===========================================================
+
+torch>=2.10.0
+transformers>=5.16.0
+accelerate>=1.14.0
+safetensors>=0.8.0
+kagglehub
+
+# Server
+uvicorn
+fastapi
+slowapi>=0.1.9
+requests
+
+# Database
+sqlalchemy
+pymysql
+psycopg2-binary
+
+# UI
+gradio
+pandas

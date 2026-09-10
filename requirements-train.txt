@@ -1,0 +1,25 @@
+# ===========================================================
+# Text-to-SQL Engine — Full Training Dependencies
+# ===========================================================
+# Includes all deployment dependencies plus training-specific
+# packages needed for QLoRA fine-tuning and data processing.
+# ===========================================================
+
+-r requirements.txt
+
+# Training
+peft>=0.20.0
+trl>=1.12.0
+bitsandbytes>=0.50.2
+datasets>=5.0.1
+
+# Tokenization & ML utilities
+tokenizers>=0.23.2
+huggingface-hub>=1.11.0
+numpy>=2.0.2
+scipy>=1.16.3
+
+# PyTorch ecosystem (needed for training, optional for inference)
+torchvision>=0.25.0
+torchaudio>=2.10.0
+torchao>=0.18.0
