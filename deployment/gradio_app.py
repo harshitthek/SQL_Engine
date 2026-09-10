@@ -28,6 +28,10 @@ import json
 import logging
 import sqlite3
 import sys
+
+_THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+if _THIS_DIR not in sys.path:
+    sys.path.insert(0, _THIS_DIR)
 from typing import Any, Optional
 import gradio as gr
 import pandas as pd
@@ -52,9 +56,75 @@ logging.basicConfig(
 )
 logger = logging.getLogger("gradio_app")
 
-# Global FastAPI client instance
+# ---------------------------------------------------------------------------
+# Inference Mode: "api" (default, via FastAPI) or "direct" (HF Spaces ZeroGPU)
+# ---------------------------------------------------------------------------
+# On HF Spaces with ZeroGPU, GPU access is only available during @spaces.GPU
+# decorated function calls in the main process. Since our FastAPI subprocess
+# cannot receive GPU from ZeroGPU, we bypass it and do direct in-process
+# inference when running on HF Spaces.
+# ---------------------------------------------------------------------------
+
+IS_HF_SPACE = bool(os.getenv("SPACE_ID"))
+INFERENCE_MODE = os.getenv("INFERENCE_MODE", "direct" if IS_HF_SPACE else "api")
+
+# Global FastAPI client instance (used in "api" mode)
 API_BASE_URL = os.getenv("FASTAPI_URL", "http://127.0.0.1:8000")
 fastapi_client = FastAPIClient(base_url=API_BASE_URL)
+
+# Direct inference engine (used in "direct" mode on HF Spaces)
+_direct_engine = None
+_direct_engine_lock = None
+
+def _get_direct_engine():
+    """Lazy-load the Text2SQLEngine singleton for direct inference mode."""
+    global _direct_engine
+    if _direct_engine is None:
+        from prediction import Text2SQLEngine
+        logger.info("Direct mode: Loading Text2SQLEngine in-process...")
+        _direct_engine = Text2SQLEngine()
+        logger.info(f"Direct mode: Engine loaded on device='{_direct_engine.device}'")
+    return _direct_engine
+
+# ZeroGPU-decorated inference function (only active on HF Spaces)
+try:
+    import spaces as _spaces_module
+
+    @_spaces_module.GPU
+    def _gpu_generate_sql(question: str, schema: str, dialect: str = "sqlite") -> str:
+        """Run inference with temporary ZeroGPU access."""
+        import torch
+        engine = _get_direct_engine()
+        # Move model to GPU if ZeroGPU made CUDA available
+        if torch.cuda.is_available() and engine.device != "cuda":
+            engine.device = "cuda"
+            engine.torch_dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+            engine.model = engine.model.to(device=engine.device, dtype=engine.torch_dtype)
+            logger.info(f"Direct mode: Moved model to {engine.device} ({engine.torch_dtype})")
+        return engine.generate_sql(question, schema, dialect=dialect, max_new_tokens=256, temperature=0.0)
+
+    logger.info("ZeroGPU @spaces.GPU decorator registered for direct inference.")
+except (ImportError, Exception):
+    _spaces_module = None
+
+    def _gpu_generate_sql(question: str, schema: str, dialect: str = "sqlite") -> str:
+        """Fallback: run inference on CPU without ZeroGPU."""
+        engine = _get_direct_engine()
+        return engine.generate_sql(question, schema, dialect=dialect, max_new_tokens=256, temperature=0.0)
+
+
+def direct_generate_sql(question: str, schema: str, dialect: str = "sqlite") -> dict:
+    """Direct inference wrapper that returns a response dict matching FastAPI format."""
+    import time, uuid
+    t0 = time.perf_counter()
+    sql = _gpu_generate_sql(question, schema, dialect)
+    elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
+    return {
+        "sql": sql,
+        "model": "text2sql-v1",
+        "generation_time_ms": elapsed_ms,
+        "request_id": str(uuid.uuid4()),
+    }
 
 SAMPLE_DB_PATH = "sample_company.db"
 
@@ -620,7 +690,15 @@ textarea:focus, input:focus {
 # ---------------------------------------------------------------------------
 
 def refresh_health() -> tuple[str, str]:
-    """Query FastAPI GET /health and return UI status and details strings."""
+    """Query health status and return UI status and details strings."""
+    if INFERENCE_MODE == "direct":
+        # In direct mode, report engine status (no FastAPI to query)
+        if _direct_engine is not None:
+            dev = getattr(_direct_engine, "device", "cpu").upper()
+            return "● Model Healthy", f"Device: {dev} | Model: text2sql-v1 | Mode: Direct"
+        else:
+            return "○ Model Loading", "Direct inference mode — model loads on first query"
+
     data = fastapi_client.health()
     st = data.get("status", "offline")
     dev = data.get("device", "none")
@@ -950,14 +1028,22 @@ def handle_generate_sql(
 
     schema = state.get("schema", "")
     active_dialect = state.get("dialect") or state.get("db_type") or "sqlite"
-    logger.info(f"Submitting question to FastAPI /v1/tosql: '{cleaned_question}' (dialect={active_dialect})")
 
     try:
-        resp = fastapi_client.generate_sql(
-            question=cleaned_question,
-            schema=schema,
-            dialect=active_dialect,
-        )
+        if INFERENCE_MODE == "direct":
+            logger.info(f"Direct inference: '{cleaned_question}' (dialect={active_dialect})")
+            resp = direct_generate_sql(
+                question=cleaned_question,
+                schema=schema,
+                dialect=active_dialect,
+            )
+        else:
+            logger.info(f"Submitting question to FastAPI /v1/tosql: '{cleaned_question}' (dialect={active_dialect})")
+            resp = fastapi_client.generate_sql(
+                question=cleaned_question,
+                schema=schema,
+                dialect=active_dialect,
+            )
 
         sql = resp.get("sql", "").strip()
         model_name = resp.get("model", "text2sql-v1")

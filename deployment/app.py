@@ -94,5 +94,16 @@ def ensure_backend() -> subprocess.Popen | None:
 
 
 if __name__ == "__main__":
-    ensure_backend()
-    launch()
+    if os.getenv("SPACE_ID"):
+        # HF Spaces: skip FastAPI subprocess, use direct in-process inference with @spaces.GPU
+        logger.info("HF Spaces detected (SPACE_ID set). Using direct inference mode — skipping FastAPI subprocess.")
+        try:
+            from gradio_app import _get_direct_engine
+            logger.info("Preloading Text2SQLEngine into memory for HF Spaces...")
+            _get_direct_engine()
+        except Exception as exc:
+            logger.warning(f"Could not preload direct engine during startup (will load on demand): {exc}")
+        launch()
+    else:
+        ensure_backend()
+        launch()
