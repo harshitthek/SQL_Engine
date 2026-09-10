@@ -1,0 +1,41 @@
+# Git
+.git/
+.gitignore
+
+# Virtual environments
+env/
+venv/
+.venv/
+
+# ML Models (mount as volumes instead)
+models/
+
+# Data (large datasets)
+data/spider_data/
+data/processed_arrow/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing & cache
+.pytest_cache/
+__pycache__/
+.coverage
+htmlcov/
+
+# Notebooks (not needed in prod)
+notebooks/
+
+# Training-only artifacts
+artifacts/
+configs/
+
+# Misc
+*.log
+*.md
+!deployment/*.py

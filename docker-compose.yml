@@ -1,0 +1,56 @@
+# ============================================================
+# Text-to-SQL Engine — Docker Compose
+# ============================================================
+# Usage:
+#   docker compose up          # Start both services
+#   docker compose up api      # FastAPI only
+#   docker compose up ui       # Gradio only (requires api)
+# ============================================================
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/app/models:ro
+    environment:
+      - TEXT2SQL_MODEL_PATH=/app/models/text2sql-qwen-pytorch-v1-v1/text2sql-v1
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+    command: >
+      python -m uvicorn deployment.api:app
+      --host 0.0.0.0 --port 8000 --workers 1
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; r=requests.get('http://localhost:8000/health',timeout=3); exit(0 if r.ok else 1)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
+    restart: unless-stopped
+
+  ui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    ports:
+      - "7860:7860"
+    environment:
+      - FASTAPI_URL=http://api:8000
+      - GRADIO_HOST=0.0.0.0
+      - GRADIO_PORT=7860
+      - FASTAPI_NO_AUTOSTART=1
+    command: >
+      python -c "
+      import sys; sys.path.insert(0, 'deployment');
+      from gradio_app import launch;
+      launch(host='0.0.0.0', port=7860)
+      "
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
