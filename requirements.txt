@@ -6,10 +6,10 @@
 #   pip install -r requirements-train.txt
 # ===========================================================
 
-torch>=2.10.0
-transformers>=5.16.0
-accelerate>=1.14.0
-safetensors>=0.8.0
+torch>=2.0.0
+transformers>=4.36.0
+accelerate>=0.25.0
+safetensors>=0.4.0
 kagglehub
 
 # Server

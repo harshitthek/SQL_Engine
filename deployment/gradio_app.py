@@ -1812,7 +1812,9 @@ def launch(
     share: bool = False,
 ):
     """Launch the Gradio application."""
-    server_name = host or os.getenv("GRADIO_HOST", "127.0.0.1")
+    # HF Spaces health probe needs 0.0.0.0; detect via SPACE_ID env var
+    default_host = "0.0.0.0" if os.getenv("SPACE_ID") else "127.0.0.1"
+    server_name = host or os.getenv("GRADIO_HOST", default_host)
     raw_port = port or os.getenv("GRADIO_PORT", 7860)
     server_port = int(raw_port)
 

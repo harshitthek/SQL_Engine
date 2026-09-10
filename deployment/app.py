@@ -77,18 +77,19 @@ def ensure_backend() -> subprocess.Popen | None:
 
     atexit.register(_cleanup)
 
-    # Wait up to 15s for the backend to complete startup
+    # Wait up to 120s for the backend to complete startup (model download + load can take ~60s on HF Spaces)
+    startup_timeout = float(os.getenv("FASTAPI_STARTUP_TIMEOUT", "120"))
     t_start = time.time()
-    while time.time() - t_start < 15.0:
+    while time.time() - t_start < startup_timeout:
         if is_backend_healthy(api_url):
             logger.info(f"FastAPI gateway became ready in {time.time() - t_start:.1f}s at {api_url}")
             return proc
         if proc.poll() is not None:
             logger.warning(f"FastAPI process exited prematurely with returncode {proc.returncode}")
             break
-        time.sleep(0.5)
+        time.sleep(1.0)
 
-    logger.warning(f"FastAPI did not respond at {api_url} within 15s. Launching Gradio UI anyway.")
+    logger.warning(f"FastAPI did not respond at {api_url} within {startup_timeout}s. Launching Gradio UI anyway.")
     return proc
 
 
