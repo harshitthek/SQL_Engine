@@ -128,3 +128,5 @@ make install
 <!-- log: 2026-09-10 19:30:45 - chore(config): update environment configuration variables and templates -->
 
 <!-- log: 2026-09-10 20:40:00 - security(api): configure CORS_ORIGINS env and add RELOAD_SECRET authorization -->
+
+<!-- log: 2026-09-10 22:30:00 - chore(vcs): expand .gitignore with comprehensive model, dataset, and artifact exclusions -->
