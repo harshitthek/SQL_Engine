@@ -126,3 +126,5 @@ make install
 <!-- log: 2026-09-09 22:40:00 - feat(ui): add credential redaction for sensitive connection strings and logs -->
 
 <!-- log: 2026-09-10 19:30:45 - chore(config): update environment configuration variables and templates -->
+
+<!-- log: 2026-09-10 20:40:00 - security(api): configure CORS_ORIGINS env and add RELOAD_SECRET authorization -->
