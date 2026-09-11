@@ -1,17 +1,17 @@
 import os
-from typing import Optional
 
 import kagglehub
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+
 class Text2SQLEngine:
 
     def __init__(
         self,
-        model_path: Optional[str] = None,
-        device: Optional[str] = None,
-        torch_dtype: Optional[torch.dtype] = None,
+        model_path: str | None = None,
+        device: str | None = None,
+        torch_dtype: torch.dtype | None = None,
     ):
         if model_path is not None:
             self.model_path = model_path
@@ -21,7 +21,7 @@ class Text2SQLEngine:
             candidate_paths = [
                 os.path.expanduser("~/.cache/kagglehub/models/pernavjain/text2sql-qwen/pyTorch/v1/2/text2sql-v1"),
                 os.path.join(os.path.dirname(os.path.abspath(__file__)), "models", "text2sql-v1"),
-                os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "SQL_Engine", "models", "text2sql-qwen-pytorch-v1-v1", "text2sql-v1")),
+                os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "models", "text2sql-qwen-pytorch-v1-v1", "text2sql-v1")),
             ]
             found_path = next((p for p in candidate_paths if os.path.isdir(p)), None)
             if found_path:
