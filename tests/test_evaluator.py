@@ -10,11 +10,12 @@ Tests cover:
 """
 
 import os
+
 import pytest
 
 from src.evaluation.evaluator import (
-    SQLEvaluator,
     SandboxViolationError,
+    SQLEvaluator,
     compare_result_sets,
     compute_exact_match,
     execute_query,
@@ -26,7 +27,9 @@ from src.evaluation.evaluator import (
 )
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-TEST_DB_PATH = os.path.join(REPO_ROOT, "data/spider_data/database/concert_singer/concert_singer.sqlite")
+_SPIDER_DB = os.path.join(REPO_ROOT, "data", "spider_data", "database", "concert_singer", "concert_singer.sqlite")
+_FIXTURE_DB = os.path.join(REPO_ROOT, "tests", "fixtures", "database", "concert_singer", "concert_singer.sqlite")
+TEST_DB_PATH = _SPIDER_DB if os.path.exists(_SPIDER_DB) else _FIXTURE_DB
 
 
 # ---------------------------------------------------------------------------
@@ -389,6 +392,10 @@ def test_evaluator_gold_exec_failure():
     assert "Gold SQL execution failed" in res.error_message
 
 
+@pytest.mark.skipif(
+    not os.path.exists(os.path.join(REPO_ROOT, "data", "spider_data", "dev.json")),
+    reason="Spider dev.json benchmark file not present",
+)
 def test_load_eval_data_from_dev_json():
     """Verify that Spider dev.json can be loaded directly with complexity classification."""
     from scripts.run_eval import load_eval_data
@@ -397,4 +404,5 @@ def test_load_eval_data_from_dev_json():
     assert isinstance(records[0]["sql"], str)
     assert records[0]["sql"].startswith("SELECT")
     assert records[0]["hardness"] in ("simple", "medium", "hard", "extra-hard")
+
 

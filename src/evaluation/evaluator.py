@@ -9,23 +9,25 @@ Implements:
 - Task 08: Sandbox guardrail permitting only SELECT/WITH queries and rejecting modifications
 """
 
-from collections import Counter
-from dataclasses import dataclass
 import concurrent.futures
 import math
 import os
 import re
 import sqlite3
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from collections import Counter
+from dataclasses import dataclass
+from typing import Any
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 DEFAULT_DB_ROOTS = [
     os.path.join(REPO_ROOT, "data/spider_data/database"),
     os.path.join(REPO_ROOT, "data/spider_data/test_database"),
+    os.path.join(REPO_ROOT, "tests/fixtures/database"),
     "data/spider_data/database",
     "data/spider_data/test_database",
+    "tests/fixtures/database",
 ]
 
 PROHIBITED_KEYWORDS = {
@@ -53,9 +55,9 @@ class SandboxViolationError(ValueError):
 class ExecutionResult:
     """Result of running a query on SQLite."""
     success: bool
-    data: Optional[List[Tuple[Any, ...]]] = None
-    error_type: Optional[str] = None  # SyntaxError, RuntimeError, Timeout, SandboxViolation
-    error_message: Optional[str] = None
+    data: list[tuple[Any, ...]] | None = None
+    error_type: str | None = None  # SyntaxError, RuntimeError, Timeout, SandboxViolation
+    error_message: str | None = None
     execution_time: float = 0.0
 
 
@@ -64,12 +66,12 @@ class EvalItemResult:
     """Evaluation output for a single SQL example."""
     em_correct: bool
     ex_correct: bool
-    error_type: Optional[str] = None  # None, SyntaxError, RuntimeError, EmptyResult, Timeout, SandboxViolation, ResultMismatch
-    error_message: Optional[str] = None
+    error_type: str | None = None  # None, SyntaxError, RuntimeError, EmptyResult, Timeout, SandboxViolation, ResultMismatch
+    error_message: str | None = None
     pred_sql: str = ""
     gold_sql: str = ""
     db_id: str = ""
-    hardness: Optional[str] = None
+    hardness: str | None = None
     execution_time: float = 0.0
 
 
@@ -77,7 +79,7 @@ class EvalItemResult:
 # Task 01: Database Resolver
 # ---------------------------------------------------------------------------
 
-def get_db_path(db_id: str, db_root_dirs: Optional[List[str]] = None) -> str:
+def get_db_path(db_id: str, db_root_dirs: list[str] | None = None) -> str:
     """Resolve the SQLite database file path for a given Spider db_id.
     
     Searches both train/dev database and test database directories.
@@ -289,8 +291,8 @@ def normalize_for_em(query: str) -> str:
 
 
 def compute_exact_match(
-    predictions: List[str], references: List[str]
-) -> Dict[str, Any]:
+    predictions: list[str], references: list[str]
+) -> dict[str, Any]:
     """Compute Exact Match (EM) percentage between normalized predictions and labels."""
     if not predictions or not references or len(predictions) != len(references):
         return {"exact_match": 0.0, "total": 0, "correct": 0}
@@ -339,8 +341,8 @@ def normalize_val(val: Any) -> Any:
 
 
 def compare_result_sets(
-    res1: Optional[List[Tuple[Any, ...]]],
-    res2: Optional[List[Tuple[Any, ...]]],
+    res1: list[tuple[Any, ...]] | None,
+    res2: list[tuple[Any, ...]] | None,
 ) -> bool:
     """Compare two SQLite result sets regardless of row and column order.
     
@@ -509,12 +511,12 @@ class SQLEvaluator:
 
     def __init__(
         self,
-        db_root_dirs: Optional[List[str]] = None,
+        db_root_dirs: list[str] | None = None,
         timeout: float = 3.0,
     ):
         self.db_root_dirs = db_root_dirs or DEFAULT_DB_ROOTS
         self.timeout = timeout
-        self.db_cache: Dict[str, str] = {}
+        self.db_cache: dict[str, str] = {}
 
     def resolve_db(self, db_id: str) -> str:
         """Resolve database path with caching."""
@@ -527,7 +529,7 @@ class SQLEvaluator:
         pred_sql: str,
         gold_sql: str,
         db_id: str,
-        hardness: Optional[str] = None,
+        hardness: str | None = None,
     ) -> EvalItemResult:
         """Evaluate a single predicted SQL against gold SQL."""
         em_correct = normalize_for_em(pred_sql) == normalize_for_em(gold_sql)
@@ -631,11 +633,11 @@ class SQLEvaluator:
 
     def evaluate_batch(
         self,
-        predictions: List[str],
-        references: List[str],
-        db_ids: List[str],
-        hardness_list: Optional[List[str]] = None,
-    ) -> Dict[str, Any]:
+        predictions: list[str],
+        references: list[str],
+        db_ids: list[str],
+        hardness_list: list[str] | None = None,
+    ) -> dict[str, Any]:
         """Evaluate a batch of predictions against references across SQLite databases."""
         assert len(predictions) == len(references) == len(db_ids), (
             f"Mismatched lengths: predictions ({len(predictions)}), "
@@ -646,7 +648,7 @@ class SQLEvaluator:
         if hardness_list is None:
             hardness_list = ["all"] * n
 
-        results: List[EvalItemResult] = []
+        results: list[EvalItemResult] = []
         for pred, ref, db, h in zip(predictions, references, db_ids, hardness_list):
             res = self.evaluate_single(pred, ref, db, hardness=h)
             results.append(res)
@@ -659,7 +661,7 @@ class SQLEvaluator:
         overall_ex = round((ex_correct / total * 100.0) if total > 0 else 0.0, 2)
 
         tiers = sorted(list(set(hardness_list)))
-        tier_metrics: Dict[str, Dict[str, Any]] = {}
+        tier_metrics: dict[str, dict[str, Any]] = {}
         for tier in tiers:
             tier_results = [r for r in results if r.hardness == tier]
             t_total = len(tier_results)

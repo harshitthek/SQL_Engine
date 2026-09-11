@@ -62,6 +62,7 @@ data/processed
 .pytest_cache/
 htmlcov/
 .tox/
+tests/fixtures/
 
 # ============================================================
 # Deployment Artifacts (generated, not source)
