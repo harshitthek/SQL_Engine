@@ -1,13 +1,13 @@
 """Unit tests for the Text-to-SQL data preparation pipeline."""
 
 import os
+
 import pytest
 from datasets import load_from_disk
 
 from data.processing.complexity import eval_hardness
 from data.processing.prompt_templates import TEMPLATES
 from data.processing.schema_serializer import SchemaSerializer
-from data.processing.tokenizer_utils import QwenTokenizerWrapper
 
 
 def test_complexity_classifier():
@@ -42,6 +42,10 @@ def test_complexity_classifier():
     assert eval_hardness(complex_sql) in ("hard", "extra-hard")
 
 
+@pytest.mark.skipif(
+    not os.path.exists("data/spider_data/tables.json"),
+    reason="Spider tables.json not found",
+)
 def test_schema_serializer():
     serializer = SchemaSerializer(
         tables_json_path="data/spider_data/tables.json",
@@ -70,6 +74,10 @@ def test_prompt_templates():
         assert sql not in input_p
 
 
+@pytest.mark.skipif(
+    not os.path.exists("data/processed_arrow"),
+    reason="Processed arrow dataset directory not found",
+)
 def test_arrow_dataset_loading():
     arrow_dir = "data/processed_arrow"
     assert os.path.exists(arrow_dir)

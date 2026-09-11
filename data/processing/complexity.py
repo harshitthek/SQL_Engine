@@ -12,7 +12,7 @@ Complexity is evaluated based on:
 3. Others: Aggregation counts, number of selected columns, number of WHERE conditions, number of GROUP BY columns
 """
 
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 WHERE_OPS = (
     "not",
@@ -32,17 +32,17 @@ UNIT_OPS = ("none", "-", "+", "*", "/")
 AGG_OPS = ("none", "max", "min", "count", "sum", "avg")
 
 
-def has_agg(unit: Tuple[Any, ...]) -> bool:
+def has_agg(unit: tuple[Any, ...]) -> bool:
     """Check whether a column or expression unit has an aggregate function."""
     return unit[0] != AGG_OPS.index("none")
 
 
-def count_agg(units: List[Any]) -> int:
+def count_agg(units: list[Any]) -> int:
     """Count number of aggregate functions in the given units."""
     return len([unit for unit in units if has_agg(unit)])
 
 
-def get_nested_sql(sql: Dict[str, Any]) -> List[Dict[str, Any]]:
+def get_nested_sql(sql: dict[str, Any]) -> list[dict[str, Any]]:
     """Recursively extract nested SQL queries from conditions and set operations."""
     nested = []
     cond_units = (
@@ -64,7 +64,7 @@ def get_nested_sql(sql: Dict[str, Any]) -> List[Dict[str, Any]]:
     return nested
 
 
-def count_component1(sql: Dict[str, Any]) -> int:
+def count_component1(sql: dict[str, Any]) -> int:
     """Count structural components: WHERE, GROUP BY, ORDER BY, LIMIT, JOINs, OR, LIKE."""
     count = 0
     if len(sql.get("where", [])) > 0:
@@ -97,13 +97,13 @@ def count_component1(sql: Dict[str, Any]) -> int:
     return count
 
 
-def count_component2(sql: Dict[str, Any]) -> int:
+def count_component2(sql: dict[str, Any]) -> int:
     """Count nested SQL queries."""
     nested = get_nested_sql(sql)
     return len(nested)
 
 
-def count_others(sql: Dict[str, Any]) -> int:
+def count_others(sql: dict[str, Any]) -> int:
     """Count aggregate counts, multiple select columns, multiple conditions, multiple group bys."""
     count = 0
     select_units = sql.get("select", [False, []])[1]
@@ -132,7 +132,7 @@ def count_others(sql: Dict[str, Any]) -> int:
     return count
 
 
-def eval_hardness(sql: Dict[str, Any]) -> str:
+def eval_hardness(sql: dict[str, Any]) -> str:
     """Categorize SQL query into simple, medium, hard, extra-hard."""
     count_comp1_ = count_component1(sql)
     count_comp2_ = count_component2(sql)

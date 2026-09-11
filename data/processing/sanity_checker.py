@@ -6,7 +6,7 @@ prompts, verifies schema-SQL alignment, and saves the inspection report.
 
 import os
 import random
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 try:
     from data.processing.complexity import eval_hardness
@@ -27,7 +27,7 @@ class SanityChecker:
         self,
         tables_json_path: str = "data/spider_data/tables.json",
         db_root_dir: str = "data/spider_data/database",
-        tokenizer_wrapper: Optional[QwenTokenizerWrapper] = None,
+        tokenizer_wrapper: QwenTokenizerWrapper | None = None,
     ):
         self.serializer = SchemaSerializer(tables_json_path, db_root_dir)
         self.tokenizer_wrapper = tokenizer_wrapper or QwenTokenizerWrapper()
@@ -35,11 +35,11 @@ class SanityChecker:
 
     def sample_and_render(
         self,
-        dataset_records: List[Dict[str, Any]],
+        dataset_records: list[dict[str, Any]],
         num_samples: int = 20,
         random_seed: int = 42,
-        output_file: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        output_file: str | None = None,
+    ) -> list[dict[str, Any]]:
         """Randomly sample N examples and format them into readable inspection blocks."""
         random.seed(random_seed)
         sampled = random.sample(dataset_records, min(num_samples, len(dataset_records)))

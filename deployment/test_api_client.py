@@ -2,18 +2,18 @@
 Unit tests for FastAPIClient.
 """
 from unittest.mock import MagicMock, patch
+
 import pytest
 import requests
-
 from api_client import (
     FastAPIClient,
+    FastAPIClientError,
     FastAPIUnavailableError,
-    ModelNotReadyError,
     InferenceBusyError,
     InferenceFailedError,
+    ModelNotReadyError,
     RateLimitExceededError,
     RequestValidationError,
-    FastAPIClientError,
 )
 
 

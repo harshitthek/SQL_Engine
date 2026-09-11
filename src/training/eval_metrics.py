@@ -4,23 +4,16 @@ Implements Exact Match (EM) metric calculation, Execution Accuracy (EX),
 and evaluation on Spider validation examples.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 import torch
 
 from src.evaluation.evaluator import (
-    EvalItemResult,
-    ExecutionResult,
-    SQLEvaluator,
-    SandboxViolationError,
-    compare_result_sets,
     compute_exact_match,
-    execute_query,
-    get_db_path,
-    normalize_for_em,
     normalize_sql,
-    sort_select_columns,
-    validate_sandbox,
 )
+
+__all__ = ["compute_exact_match", "normalize_sql", "run_dev_evaluation"]
 
 
 def run_dev_evaluation(
@@ -28,9 +21,9 @@ def run_dev_evaluation(
     tokenizer: Any,
     dev_dataset: Any,
     max_samples: int = 500,
-    device: Optional[str] = None,
+    device: str | None = None,
     batch_size: int = 4,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Run greedy inference on dev dataset and compute Exact Match.
 
     Designed for mid-training evaluation.

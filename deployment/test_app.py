@@ -1,14 +1,12 @@
 """
 Unit tests for app.py entrypoint and process orchestration.
 """
-import atexit
 import os
 import subprocess
 from unittest.mock import MagicMock, patch
-import pytest
-import requests
 
 import app
+import requests
 from app import ensure_backend, is_backend_healthy
 
 
@@ -57,7 +55,7 @@ def test_ensure_backend_spawns_and_becomes_ready():
     with patch.dict(os.environ, {"FASTAPI_URL": "http://127.0.0.1:8000"}, clear=False), \
          patch("subprocess.Popen", return_value=mock_proc) as mock_popen, \
          patch("atexit.register", side_effect=fake_register), \
-         patch("time.sleep") as mock_sleep, \
+         patch("time.sleep"), \
          patch("app.is_backend_healthy", side_effect=[False, True]):
         proc = ensure_backend()
         assert proc == mock_proc

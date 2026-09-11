@@ -4,7 +4,8 @@ Handles tokenizer instantiation, encoding, token count calculation,
 and distribution statistics.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 import numpy as np
 
 
@@ -21,21 +22,21 @@ class QwenTokenizerWrapper:
         """Return token count for the given text."""
         return len(self.tokenizer.encode(text, add_special_tokens=False))
 
-    def encode(self, text: str, add_special_tokens: bool = True) -> List[int]:
+    def encode(self, text: str, add_special_tokens: bool = True) -> list[int]:
         """Encode text to token IDs."""
         return self.tokenizer.encode(text, add_special_tokens=add_special_tokens)
 
-    def decode(self, token_ids: List[int]) -> str:
+    def decode(self, token_ids: list[int]) -> str:
         """Decode token IDs back to string."""
         return self.tokenizer.decode(token_ids, skip_special_tokens=False)
 
-    def batch_count_tokens(self, texts: List[str]) -> List[int]:
+    def batch_count_tokens(self, texts: list[str]) -> list[int]:
         """Count tokens for a batch of texts."""
         encodings = self.tokenizer(texts, add_special_tokens=False, return_attention_mask=False)
         return [len(ids) for ids in encodings["input_ids"]]
 
 
-def compute_token_statistics(lengths: List[int]) -> Dict[str, Any]:
+def compute_token_statistics(lengths: list[int]) -> dict[str, Any]:
     """Calculate summary statistics and percentiles for token lengths."""
     arr = np.array(lengths)
     return {

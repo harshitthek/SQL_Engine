@@ -7,13 +7,13 @@ Implements:
 """
 
 import argparse
-from collections import Counter
 import json
 import os
 import re
 import sys
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from collections import Counter
+from typing import Any
 
 import torch
 from datasets import load_from_disk
@@ -29,8 +29,6 @@ if REPO_ROOT not in sys.path:
 from src.evaluation.evaluator import (
     EvalItemResult,
     SQLEvaluator,
-    normalize_for_em,
-    normalize_sql,
 )
 
 
@@ -105,7 +103,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def get_device(requested_device: Optional[str] = None) -> str:
+def get_device(requested_device: str | None = None) -> str:
     if requested_device:
         return requested_device
     if torch.cuda.is_available():
@@ -116,14 +114,14 @@ def get_device(requested_device: Optional[str] = None) -> str:
 
 
 def load_eval_data(
-    data_path: str, split: str = "validation", max_samples: Optional[int] = None
-) -> List[Dict[str, Any]]:
+    data_path: str, split: str = "validation", max_samples: int | None = None
+) -> list[dict[str, Any]]:
     """Load evaluation samples from arrow dataset or dev.json."""
     if os.path.isdir(data_path) and os.path.exists(os.path.join(data_path, "dataset_dict.json")):
         ds = load_from_disk(data_path)[split]
         records = [dict(ds[i]) for i in range(len(ds))]
     elif data_path.endswith(".json"):
-        with open(data_path, "r", encoding="utf-8") as f:
+        with open(data_path, encoding="utf-8") as f:
             raw_records = json.load(f)
         records = []
         for idx, r in enumerate(raw_records):
@@ -162,10 +160,10 @@ def load_eval_data(
 
 def run_model_inference(
     model_path: str,
-    records: List[Dict[str, Any]],
+    records: list[dict[str, Any]],
     batch_size: int = 32,
-    device: Optional[str] = None,
-) -> List[str]:
+    device: str | None = None,
+) -> list[str]:
     """Run batched greedy generation to produce SQL predictions."""
     target_device = get_device(device)
     print(f"\n[1/3] Loading model from: {model_path}")
@@ -193,8 +191,8 @@ def run_model_inference(
             prompts.append(r["prompt"])
         else:
             if serializer is None:
-                from data.processing.schema_serializer import SchemaSerializer
                 from data.processing.prompt_templates import TEMPLATES
+                from data.processing.schema_serializer import SchemaSerializer
                 serializer = SchemaSerializer(
                     tables_json_path="data/spider_data/tables.json",
                     db_root_dir="data/spider_data/database",
@@ -202,7 +200,7 @@ def run_model_inference(
             schema = serializer.serialize_ddl(r["db_id"])
             p = TEMPLATES["code_comment"].format_input(schema, r["question"])
             prompts.append(p)
-    predictions: List[str] = []
+    predictions: list[str] = []
 
     print(f"[2/3] Generating SQL queries for {len(prompts)} examples...")
     t0 = time.time()
@@ -249,8 +247,8 @@ def run_model_inference(
 def categorize_sql_failure_pattern(
     pred_sql: str,
     gold_sql: str,
-    error_type: Optional[str],
-    error_message: Optional[str],
+    error_type: str | None,
+    error_message: str | None,
 ) -> str:
     """Analyze a single failure and map it to a concrete failure pattern category."""
     if error_type == "Timeout":
@@ -317,19 +315,19 @@ def categorize_sql_failure_pattern(
 
 
 def generate_error_report(
-    eval_metrics: Dict[str, Any],
-    records: List[Dict[str, Any]],
+    eval_metrics: dict[str, Any],
+    records: list[dict[str, Any]],
     output_path: str,
 ) -> None:
     """Generate comprehensive Markdown error analysis report for Task 07."""
-    results: List[EvalItemResult] = eval_metrics["results"]
+    results: list[EvalItemResult] = eval_metrics["results"]
     total = len(results)
     failures = [r for r in results if not r.ex_correct]
     num_failures = len(failures)
 
     # Classify all failures into patterns
     pattern_counts: Counter = Counter()
-    failure_examples: Dict[str, List[Dict[str, Any]]] = {}
+    failure_examples: dict[str, list[dict[str, Any]]] = {}
 
     for idx, (res, rec) in enumerate(zip(results, records)):
         if not res.ex_correct:
@@ -401,7 +399,7 @@ def generate_error_report(
         "# Text-to-SQL Evaluation & Error Analysis Report",
         "",
         f"**Date/Time:** {time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}  ",
-        f"**Benchmark Split:** Spider Validation Set (`dev.json`)  ",
+        "**Benchmark Split:** Spider Validation Set (`dev.json`)  ",
         f"**Total Examples Evaluated:** {total}  ",
         f"**Overall Exact Match (EM):** {eval_metrics['exact_match']:.2f}% ({eval_metrics['em_correct']}/{total})  ",
         f"**Overall Execution Accuracy (EX):** {eval_metrics['execution_accuracy']:.2f}% ({eval_metrics['ex_correct']}/{total})  ",
@@ -522,10 +520,10 @@ def main():
     print(f"Loaded {len(records)} examples from {args.data_path} (split: {args.split})")
 
     # 2. Get predictions (from cache or model generation)
-    predictions: List[str] = []
+    predictions: list[str] = []
     if args.load_predictions and os.path.exists(args.load_predictions):
         print(f"Loading cached predictions from: {args.load_predictions}")
-        with open(args.load_predictions, "r", encoding="utf-8") as f:
+        with open(args.load_predictions, encoding="utf-8") as f:
             predictions = json.load(f)
         if len(predictions) > len(records):
             predictions = predictions[: len(records)]

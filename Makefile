@@ -48,11 +48,10 @@ test:
 	pytest tests/ -v
 
 test-deployment:
-	cd deployment && pytest -v
+	pytest deployment/ -v
 
 test-all:
-	pytest tests/ -v
-	cd deployment && pytest -v
+	pytest tests/ deployment/ -v
 
 smoke-test:
 	python scripts/smoke_test_pipeline.py
@@ -61,10 +60,10 @@ eval:
 	python scripts/run_eval.py
 
 serve:
-	cd deployment && python -m uvicorn api:app --host 0.0.0.0 --port 8000 --workers 1
+	python -m uvicorn deployment.api:app --host 0.0.0.0 --port 8000 --workers 1
 
 gradio:
-	cd deployment && python app.py
+	python deployment/app.py
 
 lint:
 	ruff check .
@@ -73,9 +72,7 @@ format:
 	ruff format . || true
 
 clean:
-	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-	find . -type f -name "*.pyc" -delete 2>/dev/null || true
-	find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
+	python -c "import shutil, pathlib; [shutil.rmtree(p, ignore_errors=True) for p in pathlib.Path('.').rglob('__pycache__')]; [p.unlink() for p in pathlib.Path('.').rglob('*.pyc')]; [shutil.rmtree(p, ignore_errors=True) for p in pathlib.Path('.').rglob('.pytest_cache')]"
 
 docker-build:
 	docker build -t sql-engine .

@@ -3,15 +3,13 @@ Unit tests for FastAPI Inference Gateway in api.py.
 """
 import asyncio
 import os
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
+
 import pytest
 import torch
+from api import ErrorCode, ToSQLRequest, app, lifespan
 from fastapi import HTTPException, Request
 from fastapi.testclient import TestClient
-from pydantic import ValidationError
-
-import api
-from api import ErrorCode, ToSQLRequest, app, lifespan
 
 
 @pytest.fixture
@@ -201,7 +199,7 @@ def test_tosql_queue_timeout(client):
 
     async def fake_wait_for(fut, timeout=None):
         fut.close()
-        raise asyncio.TimeoutError()
+        raise TimeoutError()
 
     with patch("asyncio.wait_for", side_effect=fake_wait_for):
         resp = client.post(
@@ -686,9 +684,9 @@ def test_rate_limit_handler_tuple_window_stats(client):
 
 def test_rate_limit_handler_fallback_when_view_rate_limit_missing(client):
     """Verify rate_limit_handler recovers limit from exc.limit when view_rate_limit is missing from request.state."""
+    from limits import parse
     from slowapi.errors import RateLimitExceeded
     from slowapi.wrappers import Limit
-    from limits import parse
 
     item = parse("10/minute")
     mock_limit = Limit(item, lambda: "testclient", None, False, None, None, None, 1, True)

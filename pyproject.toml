@@ -11,6 +11,11 @@ line-length = 88
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
+ignore = [
+    "E501",  # line too long
+    "E402",  # module level import not at top of file (sys.path manipulation)
+    "B905",  # zip() without an explicit strict= parameter
+]
 
 [tool.mypy]
 python_version = "3.11"
@@ -18,4 +23,4 @@ strict = true
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
-testpaths = ["tests"]
+testpaths = ["tests", "deployment"]

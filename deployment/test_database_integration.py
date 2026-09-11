@@ -1,10 +1,9 @@
 """
 Unit and integration tests for DatabaseManager and DatabaseConfig.
 """
-import os
 import sqlite3
-import pytest
 
+import pytest
 from database import DatabaseConfig, DatabaseManager
 
 
@@ -818,6 +817,162 @@ def test_database_manager_execute_query_supabase_adaptation():
     assert "sqlite_master" not in executed_sql
 
 
+# ---------------------------------------------------------------------------
+# Supabase (API) Integration Tests
+# ---------------------------------------------------------------------------
+
+def test_supabase_api_parse_info():
+    """Verify URL and reference ID parsing across various user input formats."""
+    # Format 1: Full https URL
+    cfg1 = DatabaseConfig(db_type="supabase_api", database="https://xyzproject.supabase.co", password="sbp_mytoken123")
+    mgr1 = DatabaseManager(cfg1)
+    ref, base_url, tok = mgr1._parse_supabase_api_info()
+    assert ref == "xyzproject"
+    assert base_url == "https://xyzproject.supabase.co"
+    assert tok == "sbp_mytoken123"
+    assert mgr1.is_api_mode is True
+
+    # Format 2: Domain without scheme
+    cfg2 = DatabaseConfig(db_type="supabase (api)", database="abcproject.supabase.co", password="eyJmyapikey")
+    mgr2 = DatabaseManager(cfg2)
+    ref2, base_url2, tok2 = mgr2._parse_supabase_api_info()
+    assert ref2 == "abcproject"
+    assert base_url2 == "https://abcproject.supabase.co"
+    assert tok2 == "eyJmyapikey"
+
+    # Format 3: Raw Project Ref ID
+    cfg3 = DatabaseConfig(db_type="supabase-api", database="projectref123", password="test")
+    mgr3 = DatabaseManager(cfg3)
+    ref3, base_url3, tok3 = mgr3._parse_supabase_api_info()
+    assert ref3 == "projectref123"
+    assert base_url3 == "https://projectref123.supabase.co"
 
 
+def test_supabase_api_test_connection_pat(monkeypatch):
+    """Verify test_connection with Personal Access Token (sbp_...)."""
+    cfg = DatabaseConfig(db_type="supabase_api", database="myref", password="sbp_testtoken")
+    mgr = DatabaseManager(cfg)
 
+    class MockResponse:
+        def __init__(self, status_code):
+            self.status_code = status_code
+
+    # Success case (200)
+    monkeypatch.setattr("requests.get", lambda url, headers, timeout: MockResponse(200))
+    assert mgr.test_connection() is True
+
+    # Unauthorized / failure case (401)
+    monkeypatch.setattr("requests.get", lambda url, headers, timeout: MockResponse(401))
+    assert mgr.test_connection() is False
+
+
+def test_supabase_api_test_connection_apikey(monkeypatch):
+    """Verify test_connection with API Key (anon / service_role)."""
+    cfg = DatabaseConfig(db_type="supabase_api", database="https://myref.supabase.co", password="eyJhbGciOi...")
+    mgr = DatabaseManager(cfg)
+
+    class MockResponse:
+        def __init__(self, status_code):
+            self.status_code = status_code
+
+    monkeypatch.setattr("requests.get", lambda url, headers, timeout: MockResponse(200))
+    assert mgr.test_connection() is True
+
+    monkeypatch.setattr("requests.get", lambda url, headers, timeout: MockResponse(403))
+    assert mgr.test_connection() is False
+
+
+def test_supabase_api_openapi_schema_introspection(monkeypatch):
+    """Verify OpenAPI schema introspection into clean DDL statements."""
+    cfg = DatabaseConfig(db_type="supabase_api", database="myref", password="eyJanonkey")
+    mgr = DatabaseManager(cfg)
+
+    mock_spec = {
+        "definitions": {
+            "products": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "integer", "format": "bigint", "description": "Note:\nThis is a Primary Key.<pk/>"},
+                    "title": {"type": "string", "format": "text"},
+                    "price": {"type": "number", "format": "numeric"},
+                },
+                "required": ["id", "title"],
+            },
+            "orders": {
+                "type": "object",
+                "properties": {
+                    "order_id": {"type": "integer", "format": "integer"},
+                    "created_at": {"type": "string", "format": "timestamp with time zone"},
+                },
+                "required": ["order_id"],
+            },
+        }
+    }
+
+    class MockResponse:
+        def __init__(self, data, status_code=200):
+            self._data = data
+            self.status_code = status_code
+            self.text = ""
+        def json(self):
+            return self._data
+
+    monkeypatch.setattr("requests.get", lambda url, headers, timeout: MockResponse(mock_spec))
+
+    tables = mgr.get_table_names()
+    assert "products" in tables
+    assert "orders" in tables
+
+    schema_ddl = mgr.get_schema()
+    assert "CREATE TABLE products" in schema_ddl
+    assert "CREATE TABLE orders" in schema_ddl
+    assert "id BIGINT PRIMARY KEY" in schema_ddl
+    assert "price NUMERIC" in schema_ddl
+
+
+def test_supabase_api_execute_query_pat(monkeypatch):
+    """Verify safe SQL execution via Management API with Personal Access Token."""
+    cfg = DatabaseConfig(db_type="supabase_api", database="myref", password="sbp_testtoken")
+    mgr = DatabaseManager(cfg)
+
+    captured_req = {}
+
+    class MockPostResponse:
+        status_code = 200
+        text = "[]"
+        def json(self):
+            return [
+                {"id": 1, "name": "Laptop", "price": 999.99},
+                {"id": 2, "name": "Phone", "price": 499.99},
+            ]
+
+    def mock_post(url, headers, json, timeout):
+        captured_req["url"] = url
+        captured_req["headers"] = headers
+        captured_req["json"] = json
+        return MockPostResponse()
+
+    monkeypatch.setattr("requests.post", mock_post)
+
+    query = 'SELECT id, name, price FROM products WHERE IFNULL(price, 0) > 100;'
+    res = mgr.execute_query(query)
+
+    assert res["columns"] == ["id", "name", "price"]
+    assert res["row_count"] == 2
+    assert res["rows"][0] == [1, "Laptop", 999.99]
+    assert "api.supabase.com/v1/projects/myref/database/query" in captured_req["url"]
+    # Verify dialect adaptation COALESCE substituted IFNULL
+    assert "COALESCE" in captured_req["json"]["query"]
+    assert "IFNULL" not in captured_req["json"]["query"]
+
+
+def test_supabase_api_execute_query_safety_block():
+    """Verify that dangerous write statements are blocked before touching network."""
+    cfg = DatabaseConfig(db_type="supabase_api", database="myref", password="sbp_token")
+    mgr = DatabaseManager(cfg)
+
+    with pytest.raises(ValueError, match="Only SELECT, WITH and EXPLAIN queries are allowed"):
+        mgr.execute_query("DELETE FROM users WHERE id = 1;")
+
+    with pytest.raises(ValueError, match="Blocked SQL operation detected: DROP"):
+        mgr.execute_query("SELECT * FROM (DROP TABLE users);")

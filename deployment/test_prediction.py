@@ -3,9 +3,9 @@ Unit tests for Text2SQLEngine in prediction.py.
 """
 import os
 from unittest.mock import MagicMock, patch
+
 import pytest
 import torch
-
 from prediction import Text2SQLEngine
 
 
@@ -44,6 +44,7 @@ def test_engine_init_with_explicit_params(mock_transformers):
         "/custom/model/path",
         torch_dtype=torch.float32,
         device_map=None,
+        low_cpu_mem_usage=True,
         trust_remote_code=True,
     )
     model_inst.to.assert_called_once_with("cpu")
@@ -61,11 +62,11 @@ def test_engine_init_with_candidate_path(mock_transformers):
          patch("os.path.isdir") as mock_isdir:
         # candidate_paths[1] exists
         def isdir_side_effect(path):
-            return path.endswith("models/text2sql-v1")
+            return os.path.normpath(path).endswith(os.path.normpath("models/text2sql-v1"))
         mock_isdir.side_effect = isdir_side_effect
 
         engine = Text2SQLEngine(device="cpu")
-        assert engine.model_path.endswith("models/text2sql-v1")
+        assert os.path.normpath(engine.model_path).endswith(os.path.normpath("models/text2sql-v1"))
 
 
 def test_engine_init_with_glob_cached_match(mock_transformers):
@@ -83,11 +84,11 @@ def test_engine_init_with_kagglehub_download_subpath_exists(mock_transformers):
          patch("os.path.isdir") as mock_isdir:
         # First candidate paths return False, sub_path returns True
         def isdir_side_effect(path):
-            return path == "/download/dir/text2sql-v1"
+            return os.path.normpath(path) == os.path.normpath("/download/dir/text2sql-v1")
         mock_isdir.side_effect = isdir_side_effect
 
         engine = Text2SQLEngine(device="cpu")
-        assert engine.model_path == "/download/dir/text2sql-v1"
+        assert os.path.normpath(engine.model_path) == os.path.normpath("/download/dir/text2sql-v1")
         mock_dl.assert_called_once_with("pernavjain/text2sql-qwen/pyTorch/v1")
 
 
@@ -111,6 +112,7 @@ def test_engine_device_and_dtype_cuda_bf16(mock_transformers):
             "/fake/path",
             torch_dtype=torch.bfloat16,
             device_map="auto",
+            low_cpu_mem_usage=True,
             trust_remote_code=True,
         )
 

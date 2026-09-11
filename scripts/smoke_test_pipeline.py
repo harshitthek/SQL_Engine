@@ -19,9 +19,8 @@ import sys
 # Add repo root to sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-import torch
 from datasets import load_from_disk
-from peft import LoraConfig, get_peft_model, PeftModel
+from peft import LoraConfig, PeftModel, get_peft_model
 from transformers import (
     AutoTokenizer,
     Qwen2Config,
@@ -29,7 +28,7 @@ from transformers import (
 )
 from trl import SFTConfig, SFTTrainer
 
-from src.training.eval_metrics import compute_exact_match, normalize_sql
+from src.training.eval_metrics import compute_exact_match
 from src.training.merge_model import compute_file_sha256
 
 
