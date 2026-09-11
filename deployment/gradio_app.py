@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 import re
+
 os.environ["GRADIO_ANALYTICS_ENABLED"] = "False"
 # Ensure localhost/loopback bypasses proxy in sandboxed/corporate environments
 for _k in ("no_proxy", "NO_PROXY"):
@@ -23,22 +24,21 @@ if "MPLCONFIGDIR" not in os.environ:
     os.makedirs(mpl_cache, exist_ok=True)
     os.environ["MPLCONFIGDIR"] = mpl_cache
 
-from datetime import datetime
 import json
 import logging
 import sqlite3
 import sys
+from datetime import datetime
 
 _THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _THIS_DIR not in sys.path:
     sys.path.insert(0, _THIS_DIR)
-from typing import Any, Optional
+from typing import Any
+
 import gradio as gr
 import pandas as pd
-
 from api_client import (
     FastAPIClient,
-    FastAPIClientError,
     FastAPIUnavailableError,
     InferenceBusyError,
     InferenceFailedError,
@@ -115,7 +115,8 @@ except (ImportError, Exception):
 
 def direct_generate_sql(question: str, schema: str, dialect: str = "sqlite") -> dict:
     """Direct inference wrapper that returns a response dict matching FastAPI format."""
-    import time, uuid
+    import time
+    import uuid
     t0 = time.perf_counter()
     sql = _gpu_generate_sql(question, schema, dialect)
     elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
@@ -128,37 +129,52 @@ def direct_generate_sql(question: str, schema: str, dialect: str = "sqlite") -> 
 
 SAMPLE_DB_PATH = "sample_company.db"
 
-REPO_URL = "https://github.com/here-2007/SQL_Engine"
+def get_repo_url() -> str:
+    """Return repository URL, dynamic via REPO_URL environment variable with fallback to friend's upstream repository."""
+    return os.getenv("REPO_URL", "https://github.com/here-2007/SQL_Engine")
 
-TOP_BANNER_HTML = (
-    '<div id="top-announcement-banner" class="terminal-banner" '
-    'data-banner-text="You can run it locally for even Better Experience Github" '
-    'aria-label="You can run it locally for even Better Experience Github">'
-    '<div class="banner-content">'
-    '<span class="banner-prompt">&gt;_</span>'
-    '<span class="banner-text">'
-    'You can run it locally for even Better Experience '
-    f'<a href="{REPO_URL}" target="_blank" rel="noopener noreferrer" class="banner-repo-link" id="banner-repo-link">Github</a>'
-    '</span>'
-    '</div>'
-    '<button type="button" id="banner-dismiss-btn" class="banner-close-btn" '
-    'onclick="document.getElementById(\'top-announcement-banner\').style.display=\'none\'; '
-    'var w = document.getElementById(\'top_announcement_banner_wrapper\'); if (w) w.style.display = \'none\'; '
-    'document.querySelectorAll(\'.terminal-banner, .banner-wrapper\').forEach(function(el) { el.style.display = \'none\'; }); '
-    'try { sessionStorage.setItem(\'dismiss_local_run_banner\', \'1\'); } catch (e) {}" '
-    'aria-label="Dismiss banner" title="Dismiss banner">✕</button>'
-    '</div>'
-)
 
-PERMANENT_GITHUB_HTML = (
-    f'<a href="{REPO_URL}" target="_blank" rel="noopener noreferrer" '
-    'class="permanent-github-link" id="permanent-github-link" '
-    'aria-label="GitHub Repository" title="GitHub Repository">'
-    '<svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor" class="github-icon" aria-hidden="true">'
-    '<path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>'
-    '</svg>'
-    '</a>'
-)
+REPO_URL = get_repo_url()
+
+
+def get_top_banner_html(repo_url: str | None = None) -> str:
+    url = repo_url or get_repo_url()
+    return (
+        '<div id="top-announcement-banner" class="terminal-banner" '
+        'data-banner-text="You can run it locally for even Better Experience Github" '
+        'aria-label="You can run it locally for even Better Experience Github">'
+        '<div class="banner-content">'
+        '<span class="banner-prompt">&gt;_</span>'
+        '<span class="banner-text">'
+        'You can run it locally for even Better Experience '
+        f'<a href="{url}" target="_blank" rel="noopener noreferrer" class="banner-repo-link" id="banner-repo-link">Github</a>'
+        '</span>'
+        '</div>'
+        '<button type="button" id="banner-dismiss-btn" class="banner-close-btn" '
+        'onclick="document.getElementById(\'top-announcement-banner\').style.display=\'none\'; '
+        'var w = document.getElementById(\'top_announcement_banner_wrapper\'); if (w) w.style.display = \'none\'; '
+        'document.querySelectorAll(\'.terminal-banner, .banner-wrapper\').forEach(function(el) { el.style.display = \'none\'; }); '
+        'try { sessionStorage.setItem(\'dismiss_local_run_banner\', \'1\'); } catch (e) {}" '
+        'aria-label="Dismiss banner" title="Dismiss banner">✕</button>'
+        '</div>'
+    )
+
+
+def get_permanent_github_html(repo_url: str | None = None) -> str:
+    url = repo_url or get_repo_url()
+    return (
+        f'<a href="{url}" target="_blank" rel="noopener noreferrer" '
+        'class="permanent-github-link" id="permanent-github-link" '
+        'aria-label="GitHub Repository" title="GitHub Repository">'
+        '<svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor" class="github-icon" aria-hidden="true">'
+        '<path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>'
+        '</svg>'
+        '</a>'
+    )
+
+
+TOP_BANNER_HTML = get_top_banner_html()
+PERMANENT_GITHUB_HTML = get_permanent_github_html()
 
 BANNER_DISMISS_SCRIPT = """
 (function() {
@@ -310,7 +326,7 @@ def get_initial_state() -> dict[str, Any]:
     }
 
 
-def _safe_port(val: Any, default: Optional[int] = None) -> Optional[int]:
+def _safe_port(val: Any, default: int | None = None) -> int | None:
     """Safely parse a port value into an integer, falling back to default on error."""
     if val is None:
         return default
@@ -321,7 +337,7 @@ def _safe_port(val: Any, default: Optional[int] = None) -> Optional[int]:
         return default
 
 
-def redact_credentials(text: str, password: Optional[str] = None) -> str:
+def redact_credentials(text: str, password: str | None = None) -> str:
     """
     Redacts sensitive credentials, passwords, and connection URIs from strings
     destined for terminal logs, UI status banners, or server error messages.
@@ -724,7 +740,7 @@ def refresh_health() -> tuple[str, str]:
     return status_md, detail_md
 
 
-def switch_db_type(db_type: str, saved_profiles_json: Optional[str] = None) -> tuple[Any, Any, Any, Any, Any, str]:
+def switch_db_type(db_type: str, saved_profiles_json: str | None = None) -> tuple[Any, Any, Any, Any, Any, str]:
     """Dynamically adjust field visibility, interactability, and defaults based on DB type."""
     normalized = (db_type or "sqlite").strip().lower()
 
@@ -816,10 +832,10 @@ def switch_db_type(db_type: str, saved_profiles_json: Optional[str] = None) -> t
 def handle_connect(
     db_type: str,
     database: str,
-    host: Optional[str],
-    port: Optional[Any],
-    username: Optional[str],
-    password: Optional[str],
+    host: str | None,
+    port: Any | None,
+    username: str | None,
+    password: str | None,
     state: dict[str, Any],
 ) -> tuple[str, str, str, str, str, dict[str, Any]]:
     """
@@ -833,7 +849,7 @@ def handle_connect(
     cleaned_pw = password if password is not None and str(password).strip() else None
 
     # Parse port safely
-    port_val: Optional[int] = None
+    port_val: int | None = None
     if port is not None and str(port).strip():
         try:
             port_val = int(str(port).strip())
@@ -1029,7 +1045,7 @@ def handle_generate_sql(
     Updates UI output terminal and metadata.
     """
     cleaned_question = (question or "").strip()
-    mgr: Optional[DatabaseManager] = state.get("db_manager")
+    mgr: DatabaseManager | None = state.get("db_manager")
 
     # Pre-flight check: database connection
     if not state.get("is_connected") or not state.get("schema") or mgr is None:
@@ -1200,7 +1216,7 @@ def handle_run_sql(
             "⚠️ No SQL query to execute. Generate a query first.",
         )
 
-    mgr: Optional[DatabaseManager] = state.get("db_manager")
+    mgr: DatabaseManager | None = state.get("db_manager")
     if mgr is None or not state.get("is_connected"):
         return (
             gr.update(visible=False, value=pd.DataFrame()),
@@ -1415,14 +1431,6 @@ def handle_clear_credentials(db_type: str = "SQLite") -> tuple[Any, Any, Any, An
 
 def build_app() -> gr.Blocks:
     """Build the complete Gradio interface for SQL Engine."""
-    theme = gr.themes.Default(
-        primary_hue=gr.themes.colors.emerald,
-        secondary_hue=gr.themes.colors.green,
-        neutral_hue=gr.themes.colors.zinc,
-        font=[gr.themes.GoogleFont("JetBrains Mono"), "ui-monospace", "monospace"],
-        font_mono=[gr.themes.GoogleFont("JetBrains Mono"), "ui-monospace", "monospace"],
-    )
-
     with gr.Blocks(title="Text-to-SQL Workstation") as demo:
         # Application state store
         state = gr.State(value=get_initial_state())
@@ -1435,15 +1443,15 @@ def build_app() -> gr.Blocks:
         )
 
         # Permanent GitHub Logo (Top Right)
-        top_github_logo = gr.HTML(
-            value=PERMANENT_GITHUB_HTML,
+        _top_github_logo = gr.HTML(
+            value=get_permanent_github_html(),
             elem_id="permanent_github_logo",
             elem_classes=["permanent-github-container"],
         )
 
         # Dismissible Top Announcement Banner
-        top_banner = gr.HTML(
-            value=TOP_BANNER_HTML,
+        _top_banner = gr.HTML(
+            value=get_top_banner_html(),
             elem_id="top_announcement_banner_wrapper",
             elem_classes=["banner-wrapper"],
             head=BANNER_DISMISS_HEAD,
@@ -1940,8 +1948,8 @@ def get_app_theme() -> gr.Theme:
 
 
 def launch(
-    host: Optional[str] = None,
-    port: Optional[int] = None,
+    host: str | None = None,
+    port: int | None = None,
     share: bool = False,
 ):
     """Launch the Gradio application."""

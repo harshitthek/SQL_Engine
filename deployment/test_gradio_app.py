@@ -1,40 +1,39 @@
 """
 Comprehensive tests for gradio_app business logic, UI state management, and SQL execution.
 """
-from unittest.mock import MagicMock, patch
 import json
+from unittest.mock import MagicMock, patch
+
 import pandas as pd
 import pytest
-
-from gradio_app import (
-    create_sample_sqlite_db,
-    get_initial_state,
-    format_log_entry,
-    switch_db_type,
-    handle_connect,
-    handle_generate_sql,
-    handle_run_sql,
-    handle_clear,
-    handle_load_sample,
-    populate_from_client_storage,
-    handle_clear_credentials,
-    on_copy_sql,
-    refresh_health,
-    build_app,
-    _safe_port,
-    redact_credentials,
-    REPO_URL,
-    TOP_BANNER_HTML,
-    PERMANENT_GITHUB_HTML,
-    CUSTOM_CSS,
-    BANNER_DISMISS_SCRIPT,
-    BANNER_DISMISS_HEAD,
-)
 from api_client import (
     FastAPIUnavailableError,
-    ModelNotReadyError,
     InferenceBusyError,
+    ModelNotReadyError,
     RequestValidationError,
+)
+from gradio_app import (
+    BANNER_DISMISS_HEAD,
+    BANNER_DISMISS_SCRIPT,
+    CUSTOM_CSS,
+    PERMANENT_GITHUB_HTML,
+    REPO_URL,
+    TOP_BANNER_HTML,
+    _safe_port,
+    build_app,
+    create_sample_sqlite_db,
+    get_initial_state,
+    handle_clear,
+    handle_clear_credentials,
+    handle_connect,
+    handle_generate_sql,
+    handle_load_sample,
+    handle_run_sql,
+    on_copy_sql,
+    populate_from_client_storage,
+    redact_credentials,
+    refresh_health,
+    switch_db_type,
 )
 
 
@@ -751,13 +750,10 @@ def test_format_conn_status_branches():
 
 
 def test_handle_generate_sql_empty_question_and_error_handlers(connected_sample_state):
-    from gradio_app import handle_generate_sql
     from api_client import (
-        RequestValidationError,
-        ModelNotReadyError,
-        InferenceBusyError,
         InferenceFailedError,
     )
+    from gradio_app import handle_generate_sql
 
     # 1. Empty question
     sql, meta, status, run_btn, state = handle_generate_sql("", connected_sample_state)
@@ -842,9 +838,10 @@ def test_gradio_launch_and_main(monkeypatch):
 
 
 def test_gradio_main_and_no_proxy():
-    import gradio_app
     import os
     import runpy
+
+    import gradio_app
 
     app_path = os.path.abspath(gradio_app.__file__)
 
@@ -1535,6 +1532,29 @@ def test_banner_dismiss_listener_and_pointer_events():
     assert "initBannerDismiss" in BANNER_DISMISS_SCRIPT
     assert BANNER_DISMISS_HEAD.startswith("<script>")
     assert BANNER_DISMISS_HEAD.endswith("</script>")
+
+
+def test_dynamic_repo_url_configuration(monkeypatch):
+    """Verify get_repo_url and banner HTML dynamically reflect REPO_URL environment variable."""
+    from deployment.gradio_app import (
+        get_permanent_github_html,
+        get_repo_url,
+        get_top_banner_html,
+    )
+
+    # Default fallback to upstream friend repo
+    monkeypatch.delenv("REPO_URL", raising=False)
+    assert get_repo_url() == "https://github.com/here-2007/SQL_Engine"
+    assert "https://github.com/here-2007/SQL_Engine" in get_top_banner_html()
+    assert "https://github.com/here-2007/SQL_Engine" in get_permanent_github_html()
+
+    # Dynamic custom override
+    custom_repo = "https://github.com/custom-user/Custom_SQL_Engine"
+    monkeypatch.setenv("REPO_URL", custom_repo)
+    assert get_repo_url() == custom_repo
+    assert custom_repo in get_top_banner_html()
+    assert custom_repo in get_permanent_github_html()
+
 
 
 
