@@ -46,7 +46,7 @@ app_file: deployment/app.py
 
 This project is a collaborative effort bringing together deep learning model engineering and full-stack cloud systems architecture:
 
-- **Pushkar Jain / Pernav Jain** ([@here-2007](https://github.com/here-2007) / [@Pernav](https://huggingface.co/spaces/Pernav/Text_to_SQL) / [@pernavjain](https://www.kaggle.com/pernavjain))
+- **Pernav Jain** ([@here-2007](https://github.com/here-2007) / [@Pernav](https://huggingface.co/spaces/Pernav/Text_to_SQL) / [@pernavjain](https://www.kaggle.com/pernavjain))
   - **Project Creator & Full-Stack Architect**: Designed the end-to-end multi-tier system architecture and published the Spider benchmark dataset on Kaggle ([pernavjain/natural-language-to-sql](https://www.kaggle.com/datasets/pernavjain/natural-language-to-sql)).
   - **Cloud Deployment**: Deployed and maintained the Hugging Face Space ([Pernav/Text_to_SQL](https://huggingface.co/spaces/Pernav/Text_to_SQL)) and configured Cloudflare Workers edge routing ([text-to-sql.here-2007.workers.dev](https://text-to-sql.here-2007.workers.dev/)).
   - **Frontend Engineering**: Built the Gradio workstation UI featuring the JetBrains Mono terminal design system, connection management, dark/light themes, and client-side `localStorage` state syncing.
