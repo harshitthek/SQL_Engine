@@ -10,7 +10,8 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Optional
+from typing import Any
+
 import requests
 
 logger = logging.getLogger("fastapi_client")
@@ -71,7 +72,7 @@ class FastAPIClient:
 
     def __init__(
         self,
-        base_url: Optional[str] = None,
+        base_url: str | None = None,
         timeout: float = 65.0,
         connect_timeout: float = 5.0,
     ) -> None:

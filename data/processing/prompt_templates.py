@@ -6,7 +6,6 @@ Defines multiple prompt formatting strategies:
 - Format 3: SQLite Code-Comment format (commented schema + query generation)
 """
 
-from typing import Any, Dict, Optional
 
 
 class PromptTemplate:
@@ -27,7 +26,7 @@ class MarkdownInstructionTemplate(PromptTemplate):
     Uses explicit markdown headers to demarcate Database Schema, Question, and SQL.
     """
 
-    def __init__(self, system_instruction: Optional[str] = None):
+    def __init__(self, system_instruction: str | None = None):
         self.system_instruction = system_instruction or (
             "You are an expert SQL engineer. Given the database schema, write the exact "
             "SQLite query that answers the user question."
@@ -52,7 +51,7 @@ class ChatMLTemplate(PromptTemplate):
     matching the Qwen2.5-Coder chat format.
     """
 
-    def __init__(self, system_instruction: Optional[str] = None):
+    def __init__(self, system_instruction: str | None = None):
         self.system_instruction = system_instruction or (
             "You are an expert SQL engineer. Given the following SQLite database schema, "
             "write the exact SQL query that answers the question. Return ONLY the raw SQL query."
@@ -69,7 +68,7 @@ class ChatMLTemplate(PromptTemplate):
     def format_full(self, schema_text: str, question: str, sql: str) -> str:
         return self.format_input(schema_text, question) + f"{sql.strip()}<|im_end|>"
 
-    def to_messages(self, schema_text: str, question: str, sql: Optional[str] = None) -> list:
+    def to_messages(self, schema_text: str, question: str, sql: str | None = None) -> list:
         """Return conversational message list suitable for HuggingFace apply_chat_template."""
         messages = [
             {
@@ -102,7 +101,7 @@ class CodeCommentTemplate(PromptTemplate):
         return self.format_input(schema_text, question) + sql.strip()
 
 
-TEMPLATES: Dict[str, PromptTemplate] = {
+TEMPLATES: dict[str, PromptTemplate] = {
     "markdown": MarkdownInstructionTemplate(),
     "chatml": ChatMLTemplate(),
     "code_comment": CodeCommentTemplate(),

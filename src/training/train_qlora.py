@@ -15,10 +15,9 @@ Features:
 """
 
 import argparse
-import json
 import os
 import sys
-from typing import Any, Dict, Optional
+from typing import Any
 
 import torch
 from datasets import load_from_disk
@@ -27,9 +26,7 @@ from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
     BitsAndBytesConfig,
-    DataCollatorForSeq2Seq,
     TrainerCallback,
-    TrainingArguments,
 )
 from trl import SFTTrainer
 
@@ -48,7 +45,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION CHEAT SHEET (TUNE PARAMETERS HERE FOR KAGGLE GPU)
 # ==============================================================================
-DEFAULT_CONFIG: Dict[str, Any] = {
+DEFAULT_CONFIG: dict[str, Any] = {
     # Mode Toggle: Set to False for full Kaggle training; True for fast smoke testing
     "SMOKE_TEST": False,
     "SMOKE_SAMPLES_TRAIN": 200,       # 200 samples for smoke test (Task 05)
@@ -124,17 +121,15 @@ class MidTrainingExactMatchCallback(TrainerCallback):
                 print(f">>> Warning: Mid-training evaluation error: {e}")
 
 
-def get_device_info() -> Dict[str, Any]:
+def get_device_info() -> dict[str, Any]:
     """Detect available hardware capabilities."""
     is_cuda = torch.cuda.is_available()
     is_bf16 = is_cuda and torch.cuda.is_bf16_supported()
     is_mps = torch.backends.mps.is_available()
 
-    try:
-        import bitsandbytes as bnb
-        bnb_available = True
-    except ImportError:
-        bnb_available = False
+    import importlib.util
+
+    bnb_available = importlib.util.find_spec("bitsandbytes") is not None
 
     device_name = "CPU"
     if is_cuda:
@@ -151,7 +146,7 @@ def get_device_info() -> Dict[str, Any]:
     }
 
 
-def train_qlora(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def train_qlora(config: dict[str, Any] | None = None) -> dict[str, Any]:
     """Execute the end-to-end QLoRA training pipeline."""
     cfg = dict(DEFAULT_CONFIG)
     if config:
@@ -163,7 +158,7 @@ def train_qlora(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
 
     # 1. Device and precision setup
     hw = get_device_info()
-    print(f"\n[Hardware Detection]:")
+    print("\n[Hardware Detection]:")
     print(f"- Primary Device: {hw['device_name']}")
     print(f"- CUDA Available: {hw['is_cuda']}")
     print(f"- bfloat16 Hardware Support: {hw['is_bf16']}")
@@ -195,7 +190,7 @@ def train_qlora(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         device_map = None
 
     # 3. Load Model (Task 01 & Task 02)
-    print(f"\n--- TASK 01 & 02: Model Loading & Quantization Setup ---")
+    print("\n--- TASK 01 & 02: Model Loading & Quantization Setup ---")
     if hw["is_cuda"] and hw["bnb_available"]:
         compute_dtype = torch.bfloat16 if hw["is_bf16"] else torch.float16
         print(f"Configuring 4-bit BitsAndBytesConfig (NF4, compute_dtype={compute_dtype})...")
@@ -225,7 +220,7 @@ def train_qlora(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         )
 
     # 4. LoRA Configuration (Task 03)
-    print(f"\n--- TASK 03: LoRA Adapter Configuration ---")
+    print("\n--- TASK 03: LoRA Adapter Configuration ---")
     lora_config = LoraConfig(
         r=cfg["LORA_R"],
         lora_alpha=cfg["LORA_ALPHA"],
@@ -253,7 +248,7 @@ def train_qlora(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         val_data = val_data.select(range(min(cfg["SMOKE_SAMPLES_DEV"], len(val_data))))
 
     # 6. Training Arguments & SFTConfig (Task 04)
-    print(f"\n--- TASK 04: TrainingArguments / SFTConfig Configuration ---")
+    print("\n--- TASK 04: TrainingArguments / SFTConfig Configuration ---")
     adapter_dir = cfg["ADAPTER_OUTPUT_DIR"]
     os.makedirs(adapter_dir, exist_ok=True)
 
@@ -262,6 +257,7 @@ def train_qlora(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
 
     # Detect SFTConfig parameters for version compatibility (TRL v0.8 vs v0.12+)
     import inspect
+
     from trl import SFTConfig
     sft_sig = inspect.signature(SFTConfig.__init__).parameters
     # Calculate warmup steps from warmup ratio
@@ -333,7 +329,7 @@ def train_qlora(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     trainer = SFTTrainer(**trainer_kwargs)
 
     # 8. Train (Task 08)
-    print(f"\n--- TASK 08: Starting Training Loop ---")
+    print("\n--- TASK 08: Starting Training Loop ---")
     train_result = trainer.train()
     print("Training finished successfully!")
     print(f"Final Train Loss: {train_result.training_loss:.4f}")
@@ -344,7 +340,7 @@ def train_qlora(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     tokenizer.save_pretrained(adapter_dir)
 
     # 9 & 10. Merge LoRA Adapters & Export Standalone Model (Task 09 & 10)
-    print(f"\n--- TASKS 09 & 10: Merging Adapters & Exporting Standalone Model ---")
+    print("\n--- TASKS 09 & 10: Merging Adapters & Exporting Standalone Model ---")
     merged_output_dir = cfg["MERGED_OUTPUT_DIR"]
     metadata_payload = {
         "config": cfg,

@@ -9,7 +9,8 @@ import datetime
 import hashlib
 import json
 import os
-from typing import Any, Dict, Optional
+from typing import Any
+
 import torch
 from peft import PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -28,11 +29,11 @@ def merge_lora_and_save(
     base_model_id: str,
     adapter_path: str,
     output_dir: str,
-    tokenizer_id: Optional[str] = None,
-    training_metadata: Optional[Dict[str, Any]] = None,
-    torch_dtype: Optional[torch.dtype] = None,
+    tokenizer_id: str | None = None,
+    training_metadata: dict[str, Any] | None = None,
+    torch_dtype: torch.dtype | None = None,
     device_map: str = "auto",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Merge LoRA adapter into base model and export complete standalone model.
 
     Tasks 09 & 10 implementation.
@@ -78,7 +79,7 @@ def merge_lora_and_save(
         if os.path.isfile(filepath):
             file_hashes[filename] = compute_file_sha256(filepath)
 
-    metadata: Dict[str, Any] = {
+    metadata: dict[str, Any] = {
         "timestamp_utc": datetime.datetime.utcnow().isoformat() + "Z",
         "base_model": base_model_id,
         "adapter_path": adapter_path,

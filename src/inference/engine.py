@@ -5,7 +5,6 @@ deterministic SQLite queries from natural language questions and schema DDL.
 """
 
 import os
-from typing import Optional
 
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -32,9 +31,9 @@ class Text2SQLEngine:
 
     def __init__(
         self,
-        model_path: Optional[str] = None,
-        device: Optional[str] = None,
-        torch_dtype: Optional[torch.dtype] = None,
+        model_path: str | None = None,
+        device: str | None = None,
+        torch_dtype: torch.dtype | None = None,
     ):
         self.model_path = model_path or get_default_model_path()
 

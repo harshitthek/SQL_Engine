@@ -4,8 +4,8 @@ Investigates token count inflation and practical trade-offs of including
 3 sample rows per table in the text-to-SQL prompt.
 """
 
-import json
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 import numpy as np
 from tabulate import tabulate
 
@@ -26,13 +26,13 @@ class SampleRowsStudy:
         self,
         tables_json_path: str = "data/spider_data/tables.json",
         db_root_dir: str = "data/spider_data/database",
-        tokenizer_wrapper: Optional[QwenTokenizerWrapper] = None,
+        tokenizer_wrapper: QwenTokenizerWrapper | None = None,
     ):
         self.serializer = SchemaSerializer(tables_json_path, db_root_dir)
         self.tokenizer_wrapper = tokenizer_wrapper or QwenTokenizerWrapper()
         self.template = TEMPLATES["markdown"]
 
-    def run_study_on_databases(self) -> Dict[str, Any]:
+    def run_study_on_databases(self) -> dict[str, Any]:
         """Compare token count for pure schema vs schema + 3 sample rows per DB."""
         db_ids = self.serializer.get_db_ids()
         results = []
@@ -91,7 +91,7 @@ class SampleRowsStudy:
         }
         return summary
 
-    def format_summary_table(self, summary: Dict[str, Any]) -> str:
+    def format_summary_table(self, summary: dict[str, Any]) -> str:
         """Format the study summary into a clean markdown table."""
         d = summary["ddl_stats"]
         w = summary["with_rows_stats"]

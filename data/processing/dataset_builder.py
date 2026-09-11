@@ -8,7 +8,7 @@ and exports them to disk in Apache Arrow format.
 import json
 import os
 from collections import Counter
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from datasets import Dataset, DatasetDict, load_from_disk
 from tabulate import tabulate
@@ -33,7 +33,7 @@ class DatasetBuilder:
         tables_json_path: str = "data/spider_data/tables.json",
         db_root_dir: str = "data/spider_data/database",
         template_name: str = "markdown",
-        tokenizer_wrapper: Optional[QwenTokenizerWrapper] = None,
+        tokenizer_wrapper: QwenTokenizerWrapper | None = None,
     ):
         self.serializer = SchemaSerializer(tables_json_path, db_root_dir)
         self.template: PromptTemplate = TEMPLATES[template_name]
@@ -41,21 +41,21 @@ class DatasetBuilder:
 
     def process_split(
         self,
-        data_paths: List[str],
+        data_paths: list[str],
         max_seq_length: int,
         include_sample_rows: bool = False,
-    ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         """Process raw JSON examples: serialize, compute tokens, filter by max_seq_length."""
         raw_examples = []
         for path in data_paths:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 raw_examples.extend(json.load(f))
 
         kept_records = []
         dropped_records = []
 
         # Cache serialized schemas to avoid recomputing for every example
-        schema_cache: Dict[str, str] = {}
+        schema_cache: dict[str, str] = {}
 
         for idx, ex in enumerate(raw_examples):
             db_id = ex["db_id"]
@@ -119,8 +119,8 @@ class DatasetBuilder:
 
     def build_dataset_dict(
         self,
-        train_records: List[Dict[str, Any]],
-        val_records: List[Dict[str, Any]],
+        train_records: list[dict[str, Any]],
+        val_records: list[dict[str, Any]],
     ) -> DatasetDict:
         """Convert record dictionaries to HuggingFace DatasetDict."""
         train_dataset = Dataset.from_list(train_records)
@@ -141,7 +141,7 @@ class DatasetBuilder:
         return ds
 
     @staticmethod
-    def format_drop_stats_table(stats: Dict[str, Any], split_name: str) -> str:
+    def format_drop_stats_table(stats: dict[str, Any], split_name: str) -> str:
         """Format dropping summary as a table."""
         tiers = ["simple", "medium", "hard", "extra-hard"]
         table_data = []

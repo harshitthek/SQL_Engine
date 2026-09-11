@@ -1,10 +1,9 @@
 """
 Unit and integration tests for DatabaseManager and DatabaseConfig.
 """
-import os
 import sqlite3
-import pytest
 
+import pytest
 from database import DatabaseConfig, DatabaseManager
 
 

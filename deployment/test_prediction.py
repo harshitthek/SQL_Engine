@@ -3,9 +3,9 @@ Unit tests for Text2SQLEngine in prediction.py.
 """
 import os
 from unittest.mock import MagicMock, patch
+
 import pytest
 import torch
-
 from prediction import Text2SQLEngine
 
 

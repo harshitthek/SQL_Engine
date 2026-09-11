@@ -8,31 +8,31 @@ Also supports extracting and embedding 3 sample rows per table from SQLite datab
 import json
 import os
 import sqlite3
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 
 class SchemaSerializer:
     """Serializes Spider database schemas into text representations."""
 
-    def __init__(self, tables_json_path: str, db_root_dir: Optional[str] = None):
+    def __init__(self, tables_json_path: str, db_root_dir: str | None = None):
         """Initialize the serializer with path to tables.json and optional db directory."""
         self.tables_json_path = tables_json_path
         self.db_root_dir = db_root_dir
-        self.schemas: Dict[str, Dict[str, Any]] = {}
+        self.schemas: dict[str, dict[str, Any]] = {}
         self._load_tables()
 
     def _load_tables(self) -> None:
         """Load schemas from tables.json and index by db_id."""
-        with open(self.tables_json_path, "r", encoding="utf-8") as f:
+        with open(self.tables_json_path, encoding="utf-8") as f:
             tables_data = json.load(f)
         for entry in tables_data:
             self.schemas[entry["db_id"]] = entry
 
-    def get_db_ids(self) -> List[str]:
+    def get_db_ids(self) -> list[str]:
         """Return list of all database IDs."""
         return list(self.schemas.keys())
 
-    def get_sqlite_path(self, db_id: str) -> Optional[str]:
+    def get_sqlite_path(self, db_id: str) -> str | None:
         """Get path to the sqlite file for a given db_id."""
         if not self.db_root_dir:
             return None
@@ -43,7 +43,7 @@ class SchemaSerializer:
 
     def get_sample_rows(
         self, db_id: str, table_name: str, num_rows: int = 3
-    ) -> List[Tuple[Any, ...]]:
+    ) -> list[tuple[Any, ...]]:
         """Fetch sample rows for a table from its SQLite database."""
         sqlite_path = self.get_sqlite_path(db_id)
         if not sqlite_path or not os.path.exists(sqlite_path):
@@ -80,7 +80,7 @@ class SchemaSerializer:
         foreign_keys = data.get("foreign_keys", [])
 
         # Map table_index -> list of (col_index, col_name, col_type, is_pk)
-        table_cols: Dict[int, List[Dict[str, Any]]] = {
+        table_cols: dict[int, list[dict[str, Any]]] = {
             t_idx: [] for t_idx in range(len(table_names))
         }
         for col_idx, (tbl_idx, name) in enumerate(col_names):
@@ -98,7 +98,7 @@ class SchemaSerializer:
             )
 
         # Map source_table_idx -> list of (src_col_name, target_table_name, target_col_name)
-        fk_by_table: Dict[int, List[Tuple[str, str, str]]] = {
+        fk_by_table: dict[int, list[tuple[str, str, str]]] = {
             t_idx: [] for t_idx in range(len(table_names))
         }
         for src_col_idx, tgt_col_idx in foreign_keys:

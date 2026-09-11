@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import re
-from typing import Any, Optional
+from dataclasses import dataclass
+from typing import Any
 from urllib.parse import quote_plus
 
 from sqlalchemy import (
@@ -21,12 +21,12 @@ class DatabaseConfig:
 
     database: str
 
-    host: Optional[str] = None
-    port: Optional[int] = None
-    username: Optional[str] = None
-    password: Optional[str] = None
+    host: str | None = None
+    port: int | None = None
+    username: str | None = None
+    password: str | None = None
 
-    url: Optional[str] = None
+    url: str | None = None
 
 
 def adapt_sql_dialect(sql: str, dialect: str = "sqlite") -> str:
@@ -241,7 +241,7 @@ class DatabaseManager:
 
     def __init__(self, config: DatabaseConfig):
         self.config = config
-        self.engine: Optional[Engine] = None
+        self.engine: Engine | None = None
 
     @property
     def is_api_mode(self) -> bool:
@@ -374,7 +374,7 @@ class DatabaseManager:
             f"Unsupported database type: {db_type}"
         )
 
-    def connect(self) -> Optional[Engine]:
+    def connect(self) -> Engine | None:
 
         if self.is_api_mode:
             if not self.test_connection():
@@ -446,7 +446,7 @@ class DatabaseManager:
             self.engine = None
             return False
 
-    def _get_target_schema(self) -> Optional[str]:
+    def _get_target_schema(self) -> str | None:
         if self.config.db_type and self.config.db_type.strip().lower() in ("supabase", "postgresql", "postgres", "psql", "supabase_api", "supabase (api)", "supabase-api"):
             return "public"
         return None

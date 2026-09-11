@@ -10,27 +10,26 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
-from data.processing.complexity import eval_hardness
-from data.processing.prompt_templates import TEMPLATES
-from data.processing.schema_serializer import SchemaSerializer
-from data.processing.sample_rows_study import SampleRowsStudy
-from data.processing.tokenizer_utils import QwenTokenizerWrapper
-from data.processing.dataset_builder import DatasetBuilder
-from data.processing.sanity_checker import SanityChecker
 from tabulate import tabulate
+
+from data.processing.complexity import eval_hardness
+from data.processing.dataset_builder import DatasetBuilder
+from data.processing.prompt_templates import TEMPLATES
+from data.processing.sample_rows_study import SampleRowsStudy
+from data.processing.sanity_checker import SanityChecker
+from data.processing.schema_serializer import SchemaSerializer
 
 
 def run_task_02():
     print("\n" + "=" * 60)
     print("TASK 02: Auditing Dataset Complexity Tiers")
     print("=" * 60)
-    tables_path = os.path.join(REPO_ROOT, "data/spider_data/tables.json")
     train_path = os.path.join(REPO_ROOT, "data/spider_data/train_spider.json")
     dev_path = os.path.join(REPO_ROOT, "data/spider_data/dev.json")
 
-    with open(train_path, "r", encoding="utf-8") as f:
+    with open(train_path, encoding="utf-8") as f:
         train_data = json.load(f)
-    with open(dev_path, "r", encoding="utf-8") as f:
+    with open(dev_path, encoding="utf-8") as f:
         dev_data = json.load(f)
 
     train_tiers = {"easy": 0, "medium": 0, "hard": 0, "extra": 0}

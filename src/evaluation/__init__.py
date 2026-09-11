@@ -3,8 +3,8 @@
 from .evaluator import (
     EvalItemResult,
     ExecutionResult,
-    SQLEvaluator,
     SandboxViolationError,
+    SQLEvaluator,
     compare_result_sets,
     compute_exact_match,
     execute_query,
