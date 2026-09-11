@@ -359,6 +359,12 @@ def redact_credentials(text: str, password: Optional[str] = None) -> str:
         flags=re.IGNORECASE,
     )
 
+    # Redact Supabase Personal Access Tokens (sbp_...)
+    sanitized = re.sub(r'\bsbp_[a-zA-Z0-9_]+\b', 'sbp_••••••••', sanitized)
+
+    # Redact Bearer / apikey auth tokens
+    sanitized = re.sub(r'\b(Bearer|apikey)\s+([a-zA-Z0-9_\-\.]+)', r'\1 ••••••', sanitized, flags=re.IGNORECASE)
+
     return sanitized
 
 
@@ -772,7 +778,18 @@ def switch_db_type(db_type: str, saved_profiles_json: Optional[str] = None) -> t
             gr.update(label="Database Name", value=db_val, placeholder="e.g. company_db"),
             "MySQL mode: Enter host, port (default 3306), database name, and credentials.",
         )
-    elif normalized == "supabase":
+    elif normalized in ("supabase (api)", "supabase_api", "supabase-api"):
+        pw_val = profile.get("password") or ""
+        db_val = profile.get("database") or ""
+        return (
+            gr.update(visible=False, interactive=False, value=""),  # username
+            gr.update(visible=False, interactive=False, value=""),  # host
+            gr.update(visible=False, interactive=False, value=None),  # port
+            gr.update(visible=True, interactive=True, value=pw_val, placeholder="anon / service_role key or Personal Access Token (sbp_...)"),
+            gr.update(label="Supabase Project URL or Ref ID", value=db_val, placeholder="e.g. https://<project-ref>.supabase.co or <project-ref>"),
+            "Supabase (API) mode: Enter your Supabase Project URL (or Ref ID) and API Key or Personal Access Token (sbp_...). Direct database password, host, and port are not required!",
+        )
+    elif normalized in ("supabase", "supabase (direct)", "supabase-direct"):
         user_val = profile.get("username") or "postgres"
         host_val = profile.get("host") or ""
         port_val = _safe_port(profile.get("port"), 5432)
@@ -842,6 +859,23 @@ def handle_connect(
         if not os.path.exists(cleaned_db):
             logs.append(format_log_entry(f"Notice: SQLite file '{cleaned_db}' does not exist on disk (new database will be created)."))
         config = DatabaseConfig(db_type="sqlite", database=cleaned_db)
+    elif cleaned_type in ("supabase (api)", "supabase_api", "supabase-api"):
+        if not cleaned_db or cleaned_pw is None or not str(cleaned_pw).strip():
+            err_msg = "Project URL/Ref ID and API Key/Token are required for Supabase (API)."
+            logs.append(format_log_entry(f"Validation failed: {err_msg}"))
+            return (
+                format_conn_status(state),
+                state.get("database_name", "None"),
+                format_table_count(state),
+                "\n".join(logs),
+                f"⚠️ {err_msg}",
+                state,
+            )
+        config = DatabaseConfig(
+            db_type="supabase_api",
+            database=cleaned_db,
+            password=cleaned_pw,
+        )
     elif cleaned_type in ("postgresql", "mysql", "supabase"):
         if cleaned_type == "supabase":
             cleaned_db = cleaned_db or "postgres"
@@ -924,9 +958,13 @@ def handle_connect(
         logs.append(format_log_entry(f"Schema introspected ({len(schema_text)} chars). Cached in workspace state."))
 
         dialect_name = (
-            new_manager.engine.dialect.name
-            if (new_manager.engine and hasattr(new_manager.engine, "dialect"))
-            else cleaned_type
+            "postgresql"
+            if getattr(new_manager, "is_api_mode", False)
+            else (
+                new_manager.engine.dialect.name
+                if (new_manager.engine and hasattr(new_manager.engine, "dialect"))
+                else cleaned_type
+            )
         )
 
         # Update application state
@@ -1302,6 +1340,15 @@ def populate_from_client_storage(
             gr.update(value=db_val),
             storage_json or "{}",
         )
+    elif norm in ("supabase (api)", "supabase_api", "supabase-api"):
+        return (
+            gr.update(value=""),
+            gr.update(value=""),
+            gr.update(value=None),
+            gr.update(value=profile.get("password") or ""),
+            gr.update(value=profile.get("database") or ""),
+            storage_json or "{}",
+        )
     elif norm == "supabase":
         user_val = profile.get("username") or "postgres"
         db_val = profile.get("database") or "postgres"
@@ -1347,7 +1394,7 @@ def populate_from_client_storage(
 def handle_clear_credentials(db_type: str = "SQLite") -> tuple[Any, Any, Any, Any, Any, str, str]:
     """Clears form fields and resets bridge component when saved credentials are purged."""
     norm = (db_type or "sqlite").strip().lower()
-    default_port = None if norm == "sqlite" else (5432 if norm in ("postgresql", "supabase") else 3306)
+    default_port = None if norm in ("sqlite", "supabase (api)", "supabase_api", "supabase-api") else (5432 if norm in ("postgresql", "supabase") else 3306)
     default_db = SAMPLE_DB_PATH if norm == "sqlite" else ("postgres" if norm == "supabase" else "")
     default_user = "postgres" if norm == "supabase" else ""
 
@@ -1523,7 +1570,7 @@ def build_app() -> gr.Blocks:
                     # Column 1
                     with gr.Column():
                         db_type_menu = gr.Dropdown(
-                            choices=["SQLite", "PostgreSQL", "MySQL", "Supabase"],
+                            choices=["SQLite", "PostgreSQL", "MySQL", "Supabase (API)", "Supabase"],
                             value="SQLite",
                             label="DB type(menu)",
                         )

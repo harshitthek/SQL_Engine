@@ -102,6 +102,16 @@ def test_switch_db_type():
     assert "Supabase mode" in hint
     assert "sslmode=require" in hint
 
+    # Supabase (API)
+    u_user, u_host, u_port, u_pw, u_name, hint = switch_db_type("Supabase (API)")
+    assert u_user["visible"] is False
+    assert u_host["visible"] is False
+    assert u_port["visible"] is False
+    assert u_pw["visible"] is True
+    assert ("API Key" in u_pw["placeholder"] or "Token" in u_pw["placeholder"])
+    assert ("Project URL" in u_name["label"] or "Ref ID" in u_name["label"])
+    assert "Supabase (API) mode" in hint
+
 
 def test_handle_connect_sqlite_success(clean_state, tmp_path):
     db_file = str(tmp_path / "sample.db")
@@ -168,6 +178,40 @@ def test_handle_connect_failure_does_not_log_password(clean_state):
     )
     assert "SuperSecretPassword123" not in logs
     assert "SuperSecretPassword123" not in banner
+
+
+def test_handle_connect_supabase_api(clean_state, monkeypatch):
+    class MockManager:
+        is_api_mode = True
+        engine = None
+        def connect(self):
+            return None
+        def get_table_names(self):
+            return ["users", "orders"]
+        def get_schema(self):
+            return "CREATE TABLE users (id INT PRIMARY KEY);"
+
+    monkeypatch.setattr("gradio_app.DatabaseManager", lambda cfg: MockManager())
+
+    st, db_n, tc, logs, banner, new_state = handle_connect(
+        db_type="Supabase (API)",
+        database="https://myproj.supabase.co",
+        host=None,
+        port=None,
+        username=None,
+        password="sbp_mocktoken123",
+        state=clean_state,
+    )
+
+    assert "Connected" in st
+    assert "2 tables" in tc
+    assert new_state["is_connected"] is True
+    assert new_state["dialect"] == "postgresql"
+    assert "users" in new_state["table_names"]
+    assert "orders" in new_state["table_names"]
+    assert "CREATE TABLE users" in new_state["schema"]
+    assert "sbp_mocktoken123" not in logs
+    assert "sbp_mocktoken123" not in banner
 
 
 def test_handle_load_sample(clean_state):
@@ -1275,7 +1319,7 @@ def test_handle_run_sql_redacts_sensitive_error(connected_sample_state):
 
 def test_top_banner_content_and_structure():
     """Verify dismissible top banner text, repo link in new tab, and cross dismiss button."""
-    assert REPO_URL == "https://github.com/here-2007/Text-to-SQL"
+    assert REPO_URL == "https://github.com/here-2007/SQL_Engine"
     assert "You can run it locally for even Better Experience" in TOP_BANNER_HTML
     assert "Github" in TOP_BANNER_HTML
     assert f'href="{REPO_URL}"' in TOP_BANNER_HTML
@@ -1420,7 +1464,7 @@ def test_banner_html_parser_and_text_extraction():
     # 1. Check extracted links
     assert len(parser.links) == 1
     anchor = parser.links[0]
-    assert anchor["attrs"].get("href") == "https://github.com/here-2007/Text-to-SQL"
+    assert anchor["attrs"].get("href") == "https://github.com/here-2007/SQL_Engine"
     assert anchor["attrs"].get("target") == "_blank"
     assert "noopener" in anchor["attrs"].get("rel", "")
     assert anchor["text"].strip() == "Github"

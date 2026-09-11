@@ -68,6 +68,7 @@ class Text2SQLEngine:
             self.model_path,
             torch_dtype=self.torch_dtype,
             device_map=device_map,
+            low_cpu_mem_usage=True,
             trust_remote_code=True,
         )
         if self.device in ("mps", "cpu") and device_map is None:
@@ -81,6 +82,8 @@ class Text2SQLEngine:
             "postgresql": "PostgreSQL",
             "postgres": "PostgreSQL",
             "supabase": "PostgreSQL",
+            "supabase_api": "PostgreSQL",
+            "supabase (api)": "PostgreSQL",
             "mysql": "MySQL",
             "sqlite": "SQLite",
         }.get((dialect or "sqlite").strip().lower(), (dialect or "sqlite").strip().title())

@@ -44,7 +44,7 @@ def adapt_sql_dialect(sql: str, dialect: str = "sqlite") -> str:
 
     target_dialect = (dialect or "sqlite").strip().lower()
 
-    if target_dialect in ("postgresql", "postgres", "psql", "supabase"):
+    if target_dialect in ("postgresql", "postgres", "psql", "supabase", "supabase_api", "supabase (api)", "supabase-api"):
         adapted = sql
 
         # 1. Convert SQLite-style double-quoted string literals to single quotes
@@ -212,6 +212,9 @@ class DatabaseManager:
         "postgresql",
         "mysql",
         "supabase",
+        "supabase_api",
+        "supabase (api)",
+        "supabase-api",
     }
 
     READ_ONLY_KEYWORDS = {
@@ -240,6 +243,37 @@ class DatabaseManager:
         self.config = config
         self.engine: Optional[Engine] = None
 
+    @property
+    def is_api_mode(self) -> bool:
+        """Return True if connecting via Supabase HTTP/REST/Management API rather than direct PostgreSQL."""
+        return bool(
+            self.config.db_type
+            and self.config.db_type.strip().lower()
+            in ("supabase_api", "supabase (api)", "supabase-api")
+        )
+
+    def _parse_supabase_api_info(self) -> tuple[str, str, str]:
+        """
+        Extracts (project_ref, base_url, api_key_or_token) from configuration.
+        """
+        raw_target = (self.config.database or self.config.url or "").strip()
+        token = str(self.config.password or "").strip()
+
+        if "://" in raw_target:
+            from urllib.parse import urlparse
+            parsed = urlparse(raw_target)
+            host = parsed.hostname or ""
+            ref = host.split(".")[0] if "." in host else host
+            base_url = f"{parsed.scheme}://{parsed.netloc}".rstrip("/")
+        elif "." in raw_target:
+            ref = raw_target.split(".")[0]
+            base_url = f"https://{raw_target}".rstrip("/")
+        else:
+            ref = raw_target
+            base_url = f"https://{ref}.supabase.co" if ref else ""
+
+        return ref, base_url, token
+
     def _build_connection_url(self) -> str:
 
         if self.config.url:
@@ -257,6 +291,10 @@ class DatabaseManager:
                 f"Unsupported database type: {self.config.db_type}. "
                 f"Supported types: {sorted(self.SUPPORTED_DATABASES)}"
             )
+
+        if db_type in ("supabase_api", "supabase (api)", "supabase-api"):
+            _, base_url, _ = self._parse_supabase_api_info()
+            return base_url or "https://supabase.co"
 
         if db_type == "sqlite":
             return f"sqlite:///{self.config.database}"
@@ -336,7 +374,16 @@ class DatabaseManager:
             f"Unsupported database type: {db_type}"
         )
 
-    def connect(self) -> Engine:
+    def connect(self) -> Optional[Engine]:
+
+        if self.is_api_mode:
+            if not self.test_connection():
+                ref, base_url, _ = self._parse_supabase_api_info()
+                raise ConnectionError(
+                    f"Failed to connect to Supabase API at '{base_url}' (ref: '{ref}'). "
+                    "Please verify your Project URL/Ref and API Key or Personal Access Token."
+                )
+            return None
 
         if self.engine is not None:
             return self.engine
@@ -365,6 +412,31 @@ class DatabaseManager:
 
     def test_connection(self) -> bool:
 
+        if self.is_api_mode:
+            import requests
+            try:
+                ref, base_url, token = self._parse_supabase_api_info()
+                if not ref or not token:
+                    return False
+                if token.startswith("sbp_"):
+                    # Personal Access Token: test management API
+                    resp = requests.get(
+                        f"https://api.supabase.com/v1/projects/{ref}",
+                        headers={"Authorization": f"Bearer {token}"},
+                        timeout=5.0,
+                    )
+                    return resp.status_code == 200
+                else:
+                    # PostgREST API: ping root OpenAPI endpoint
+                    resp = requests.get(
+                        f"{base_url}/rest/v1/",
+                        headers={"apikey": token, "Authorization": f"Bearer {token}"},
+                        timeout=5.0,
+                    )
+                    return resp.status_code == 200
+            except Exception:
+                return False
+
         try:
             engine = self.connect()
             with engine.connect() as connection:
@@ -375,11 +447,14 @@ class DatabaseManager:
             return False
 
     def _get_target_schema(self) -> Optional[str]:
-        if self.config.db_type and self.config.db_type.strip().lower() in ("supabase", "postgresql", "postgres", "psql"):
+        if self.config.db_type and self.config.db_type.strip().lower() in ("supabase", "postgresql", "postgres", "psql", "supabase_api", "supabase (api)", "supabase-api"):
             return "public"
         return None
 
     def get_table_names(self) -> list[str]:
+
+        if self.is_api_mode:
+            return self._get_table_names_api()
 
         engine = self.connect()
         inspector = inspect(engine)
@@ -389,6 +464,9 @@ class DatabaseManager:
         return inspector.get_table_names(**kwargs)
 
     def get_schema(self) -> str:
+
+        if self.is_api_mode:
+            return self._get_schema_api()
 
         engine = self.connect()
         inspector = inspect(engine)
@@ -478,6 +556,9 @@ class DatabaseManager:
         return "\n\n".join(schema_parts)
 
     def get_schema_dict(self) -> dict[str, Any]:
+
+        if self.is_api_mode:
+            return self._get_schema_dict_api()
 
         engine = self.connect()
         inspector = inspect(engine)
@@ -574,14 +655,19 @@ class DatabaseManager:
         max_rows: int = 1000,
     ) -> dict[str, Any]:
 
-        engine = self.connect()
-
         effective_dialect = self.config.db_type
-        if hasattr(engine, "dialect") and hasattr(engine.dialect, "name"):
-            effective_dialect = engine.dialect.name
+        if self.is_api_mode:
+            effective_dialect = "postgresql"
+        elif self.engine is not None and hasattr(self.engine, "dialect") and hasattr(self.engine.dialect, "name"):
+            effective_dialect = self.engine.dialect.name
 
         adapted_sql = adapt_sql_dialect(sql, dialect=effective_dialect)
         self.validate_sql(adapted_sql)
+
+        if self.is_api_mode:
+            return self._execute_query_api(adapted_sql, max_rows=max_rows)
+
+        engine = self.connect()
 
         try:
             with engine.connect() as connection:
@@ -614,6 +700,291 @@ class DatabaseManager:
             raise RuntimeError(
                 f"SQL execution failed: {exc}"
             ) from exc
+
+    def _get_table_names_api(self) -> list[str]:
+        import requests
+        ref, base_url, token = self._parse_supabase_api_info()
+        if not ref or not token:
+            raise ValueError("Supabase Project URL/Ref and API Key or Access Token are required.")
+
+        if token.startswith("sbp_"):
+            sql = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE' ORDER BY table_name;"
+            resp = requests.post(
+                f"https://api.supabase.com/v1/projects/{ref}/database/query",
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                json={"query": sql},
+                timeout=10.0,
+            )
+            if resp.status_code in (200, 201):
+                rows = resp.json()
+                return [r.get("table_name") for r in rows if isinstance(r, dict) and r.get("table_name")]
+            raise RuntimeError(f"Supabase Management API table query failed ({resp.status_code}): {resp.text}")
+        else:
+            resp = requests.get(
+                f"{base_url}/rest/v1/",
+                headers={"apikey": token, "Authorization": f"Bearer {token}", "Accept": "application/openapi+json"},
+                timeout=10.0,
+            )
+            if resp.status_code != 200:
+                raise RuntimeError(f"Supabase PostgREST API error ({resp.status_code}): {resp.text}")
+            data = resp.json()
+            defs = data.get("definitions") or data.get("components", {}).get("schemas", {})
+            return sorted(list(defs.keys()))
+
+    def _get_schema_dict_api(self) -> dict[str, Any]:
+        import requests
+        ref, base_url, token = self._parse_supabase_api_info()
+        result: dict[str, Any] = {}
+        if not ref or not token:
+            raise ValueError("Supabase Project URL/Ref and API Key or Access Token are required.")
+
+        if token.startswith("sbp_"):
+            sql_cols = """
+            SELECT table_name, column_name, data_type, is_nullable
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+            ORDER BY table_name, ordinal_position;
+            """
+            sql_pks = """
+            SELECT tc.table_name, kcu.column_name
+            FROM information_schema.table_constraints tc
+            JOIN information_schema.key_column_usage kcu
+              ON tc.constraint_name = kcu.constraint_name
+              AND tc.table_schema = kcu.table_schema
+            WHERE tc.constraint_type = 'PRIMARY KEY'
+              AND tc.table_schema = 'public';
+            """
+            sql_fks = """
+            SELECT
+                tc.table_name AS source_table,
+                kcu.column_name AS source_column,
+                ccu.table_name AS target_table,
+                ccu.column_name AS target_column
+            FROM information_schema.table_constraints AS tc
+            JOIN information_schema.key_column_usage AS kcu
+              ON tc.constraint_name = kcu.constraint_name
+              AND tc.table_schema = kcu.table_schema
+            JOIN information_schema.constraint_column_usage AS ccu
+              ON ccu.constraint_name = tc.constraint_name
+              AND ccu.table_schema = tc.table_schema
+            WHERE tc.constraint_type = 'FOREIGN KEY'
+              AND tc.table_schema = 'public';
+            """
+            headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+            url = f"https://api.supabase.com/v1/projects/{ref}/database/query"
+
+            r_cols = requests.post(url, headers=headers, json={"query": sql_cols}, timeout=10.0)
+            if r_cols.status_code not in (200, 201):
+                raise RuntimeError(f"Failed to fetch columns from Supabase Management API: {r_cols.text}")
+            cols_data = r_cols.json()
+
+            r_pks = requests.post(url, headers=headers, json={"query": sql_pks}, timeout=10.0)
+            pks_data = r_pks.json() if r_pks.status_code in (200, 201) else []
+            pks_by_table: dict[str, list[str]] = {}
+            for r in pks_data:
+                if isinstance(r, dict):
+                    t = r.get("table_name")
+                    c = r.get("column_name")
+                    pks_by_table.setdefault(t, []).append(c)
+
+            r_fks = requests.post(url, headers=headers, json={"query": sql_fks}, timeout=10.0)
+            fks_data = r_fks.json() if r_fks.status_code in (200, 201) else []
+            fks_by_table: dict[str, list[dict[str, Any]]] = {}
+            for fk in fks_data:
+                if isinstance(fk, dict):
+                    t = fk.get("source_table")
+                    fks_by_table.setdefault(t, []).append(fk)
+
+            for col in cols_data:
+                t = col.get("table_name")
+                if not t:
+                    continue
+                if t not in result:
+                    result[t] = {
+                        "columns": [],
+                        "primary_key": pks_by_table.get(t, []),
+                        "foreign_keys": fks_by_table.get(t, []),
+                    }
+                result[t]["columns"].append({
+                    "name": col.get("column_name"),
+                    "type": col.get("data_type"),
+                    "nullable": col.get("is_nullable") != "NO",
+                })
+            return result
+        else:
+            resp = requests.get(
+                f"{base_url}/rest/v1/",
+                headers={"apikey": token, "Authorization": f"Bearer {token}", "Accept": "application/openapi+json"},
+                timeout=10.0,
+            )
+            if resp.status_code != 200:
+                raise RuntimeError(f"Failed to fetch schema from Supabase PostgREST API ({resp.status_code}): {resp.text}")
+            data = resp.json()
+            defs = data.get("definitions") or data.get("components", {}).get("schemas", {})
+            for tbl_name, tbl_info in defs.items():
+                props = tbl_info.get("properties", {})
+                req_fields = set(tbl_info.get("required", []))
+                cols = []
+                pks = []
+                for cname, cinfo in props.items():
+                    raw_type = cinfo.get("format") or cinfo.get("type", "text")
+                    desc = cinfo.get("description", "")
+                    if "<pk/>" in desc or "Primary Key" in desc or cname in req_fields:
+                        pks.append(cname)
+                    cols.append({
+                        "name": cname,
+                        "type": str(raw_type),
+                        "nullable": cname not in req_fields,
+                    })
+                result[tbl_name] = {
+                    "columns": cols,
+                    "primary_key": pks,
+                    "foreign_keys": [],
+                }
+            return result
+
+    def _get_schema_api(self) -> str:
+        schema_dict = self._get_schema_dict_api()
+        if not schema_dict:
+            return "-- Database contains no public tables."
+
+        schema_parts = []
+        type_mapping = {
+            "integer": "INTEGER",
+            "bigint": "BIGINT",
+            "smallint": "SMALLINT",
+            "string": "TEXT",
+            "text": "TEXT",
+            "boolean": "BOOLEAN",
+            "number": "NUMERIC",
+            "timestamp with time zone": "TIMESTAMP WITH TIME ZONE",
+            "timestamp without time zone": "TIMESTAMP",
+            "date": "DATE",
+            "time": "TIME",
+            "uuid": "UUID",
+            "json": "JSON",
+            "jsonb": "JSONB",
+        }
+
+        for table_name, table_info in schema_dict.items():
+            column_lines = []
+            pk_cols = set(table_info.get("primary_key", []))
+            for column in table_info.get("columns", []):
+                col_name = column["name"]
+                raw_type = str(column["type"]).lower()
+                col_type = type_mapping.get(raw_type, column["type"].upper())
+                line = f"    {col_name} {col_type}"
+                if col_name in pk_cols:
+                    line += " PRIMARY KEY"
+                if not column.get("nullable", True):
+                    line += " NOT NULL"
+                column_lines.append(line)
+
+            table_block = (
+                f"CREATE TABLE {table_name} (\n"
+                + ",\n".join(column_lines)
+                + "\n);"
+            )
+            schema_parts.append(table_block)
+
+            for fk in table_info.get("foreign_keys", []):
+                if isinstance(fk, dict):
+                    src_tbl = fk.get("source_table", table_name)
+                    src_col = fk.get("source_column") or (fk.get("constrained_columns") or [""])[0]
+                    tgt_tbl = fk.get("target_table") or fk.get("referred_table")
+                    tgt_col = fk.get("target_column") or (fk.get("referred_columns") or [""])[0]
+                    if src_col and tgt_tbl and tgt_col:
+                        schema_parts.append(
+                            f"-- FOREIGN KEY: {src_tbl}.{src_col} REFERENCES {tgt_tbl}.{tgt_col}"
+                        )
+
+        return "\n\n".join(schema_parts)
+
+    def _execute_query_api(self, sql: str, max_rows: int = 1000) -> dict[str, Any]:
+        import requests
+        ref, base_url, token = self._parse_supabase_api_info()
+        if not ref or not token:
+            raise ValueError("Supabase Project URL/Ref and API Key or Access Token are required.")
+
+        if token.startswith("sbp_"):
+            # Management API
+            url = f"https://api.supabase.com/v1/projects/{ref}/database/query"
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+            }
+            resp = requests.post(url, headers=headers, json={"query": sql}, timeout=15.0)
+            if resp.status_code not in (200, 201):
+                err_msg = resp.text
+                try:
+                    err_json = resp.json()
+                    err_msg = err_json.get("message") or err_json.get("error") or resp.text
+                except Exception:
+                    pass
+                raise RuntimeError(f"Supabase API query execution failed: {err_msg}")
+
+            data = resp.json()
+            if isinstance(data, list):
+                rows_data = data[:max_rows]
+                if not rows_data:
+                    return {"columns": [], "rows": [], "row_count": 0}
+                cols = list(rows_data[0].keys()) if isinstance(rows_data[0], dict) else []
+                rows = [
+                    [r.get(c) for c in cols] if isinstance(r, dict) else [r]
+                    for r in rows_data
+                ]
+                return {"columns": cols, "rows": rows, "row_count": len(rows)}
+            else:
+                return {"columns": ["result"], "rows": [[str(data)]], "row_count": 1}
+        else:
+            # PostgREST rpc execution
+            rpc_url = f"{base_url}/rest/v1/rpc/exec_sql"
+            headers = {
+                "apikey": token,
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+            }
+            resp = requests.post(rpc_url, headers=headers, json={"query": sql}, timeout=15.0)
+            if resp.status_code in (200, 201):
+                data = resp.json()
+                if isinstance(data, list):
+                    rows_data = data[:max_rows]
+                    if not rows_data:
+                        return {"columns": [], "rows": [], "row_count": 0}
+                    cols = list(rows_data[0].keys()) if isinstance(rows_data[0], dict) else []
+                    rows = [
+                        [r.get(c) for c in cols] if isinstance(r, dict) else [r]
+                        for r in rows_data
+                    ]
+                    return {"columns": cols, "rows": rows, "row_count": len(rows)}
+                return {"columns": ["result"], "rows": [[str(data)]], "row_count": 1}
+
+            rpc_url2 = f"{base_url}/rest/v1/rpc/execute_sql"
+            resp2 = requests.post(rpc_url2, headers=headers, json={"sql": sql}, timeout=15.0)
+            if resp2.status_code in (200, 201):
+                data = resp2.json()
+                if isinstance(data, list):
+                    rows_data = data[:max_rows]
+                    if not rows_data:
+                        return {"columns": [], "rows": [], "row_count": 0}
+                    cols = list(rows_data[0].keys()) if isinstance(rows_data[0], dict) else []
+                    rows = [
+                        [r.get(c) for c in cols] if isinstance(r, dict) else [r]
+                        for r in rows_data
+                    ]
+                    return {"columns": cols, "rows": rows, "row_count": len(rows)}
+                return {"columns": ["result"], "rows": [[str(data)]], "row_count": 1}
+
+            raise RuntimeError(
+                "Direct SQL execution via Supabase API requires either:\n"
+                "1) A Supabase Personal Access Token (starts with 'sbp_') in the token "
+                "field (recommended, enables 100% full SQL execution without passwords).\n"
+                "2) Or create the 'exec_sql' RPC helper function in your Supabase SQL Editor:\n"
+                "   CREATE OR REPLACE FUNCTION exec_sql(query text) RETURNS json "
+                "LANGUAGE plpgsql SECURITY DEFINER AS $$\n"
+                "   DECLARE res json; BEGIN EXECUTE 'SELECT json_agg(t) FROM (' || "
+                "query || ') t' INTO res; RETURN coalesce(res, '[]'::json); END; $$;"
+            )
 
     def close(self) -> None:
 
