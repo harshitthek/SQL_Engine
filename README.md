@@ -1,3 +1,11 @@
+---
+title: Text To SQL
+emoji: ⚡
+sdk: gradio
+sdk_version: 6.26.0
+app_file: deployment/app.py
+---
+
 <div align="center">
 
 # ⚡ Neural Text-to-SQL Engine
