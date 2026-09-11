@@ -762,7 +762,7 @@ def switch_db_type(db_type: str, saved_profiles_json: str | None = None) -> tupl
             gr.update(visible=False, interactive=False, value=""),  # username
             gr.update(visible=False, interactive=False, value=""),  # host
             gr.update(visible=False, interactive=False, value=None),  # port
-            gr.update(visible=False, interactive=False, value=""),  # password
+            gr.update(visible=False, interactive=False, value="", label="password", info=None),  # password
             gr.update(label="Database File Path", placeholder="e.g. sample_company.db or chinook.db", value=db_val),
             "SQLite mode: Enter the database file path. Credentials are not required.",
         )
@@ -776,7 +776,7 @@ def switch_db_type(db_type: str, saved_profiles_json: str | None = None) -> tupl
             gr.update(visible=True, interactive=True, value=user_val, placeholder="postgres"),
             gr.update(visible=True, interactive=True, value=host_val, placeholder="localhost"),
             gr.update(visible=True, interactive=True, value=port_val),
-            gr.update(visible=True, interactive=True, value=pw_val, placeholder="••••••••"),
+            gr.update(visible=True, interactive=True, value=pw_val, placeholder="••••••••", label="password", info=None),
             gr.update(label="Database Name", value=db_val, placeholder="e.g. company_db"),
             "PostgreSQL mode: Enter host, port (default 5432), database name, and credentials.",
         )
@@ -790,7 +790,7 @@ def switch_db_type(db_type: str, saved_profiles_json: str | None = None) -> tupl
             gr.update(visible=True, interactive=True, value=user_val, placeholder="root"),
             gr.update(visible=True, interactive=True, value=host_val, placeholder="localhost"),
             gr.update(visible=True, interactive=True, value=port_val),
-            gr.update(visible=True, interactive=True, value=pw_val, placeholder="••••••••"),
+            gr.update(visible=True, interactive=True, value=pw_val, placeholder="••••••••", label="password", info=None),
             gr.update(label="Database Name", value=db_val, placeholder="e.g. company_db"),
             "MySQL mode: Enter host, port (default 3306), database name, and credentials.",
         )
@@ -801,9 +801,16 @@ def switch_db_type(db_type: str, saved_profiles_json: str | None = None) -> tupl
             gr.update(visible=False, interactive=False, value=""),  # username
             gr.update(visible=False, interactive=False, value=""),  # host
             gr.update(visible=False, interactive=False, value=None),  # port
-            gr.update(visible=True, interactive=True, value=pw_val, placeholder="anon / service_role key or Personal Access Token (sbp_...)"),
-            gr.update(label="Supabase Project URL or Ref ID", value=db_val, placeholder="e.g. https://<project-ref>.supabase.co or <project-ref>"),
-            "Supabase (API) mode: Enter your Supabase Project URL (or Ref ID) and API Key or Personal Access Token (sbp_...). Direct database password, host, and port are not required!",
+            gr.update(
+                visible=True,
+                interactive=True,
+                value=pw_val,
+                label="PAT",
+                info="Personal Access Token (PAT) : [GO TO](https://supabase.com/dashboard/account/tokens)",
+                placeholder="Personal Access Token (sbp_...)",
+            ),
+            gr.update(label="SUPABASE PROJECT ID", value=db_val, placeholder="e.g. adzuykgtwbajaktnesbk or https://<project-ref>.supabase.co"),
+            "Supabase (API) mode: Enter your SUPABASE PROJECT ID and Personal Access Token (PAT, sbp_...). Direct database password, host, and port are not required!",
         )
     elif normalized in ("supabase", "supabase (direct)", "supabase-direct"):
         user_val = profile.get("username") or "postgres"
@@ -815,7 +822,7 @@ def switch_db_type(db_type: str, saved_profiles_json: str | None = None) -> tupl
             gr.update(visible=True, interactive=True, value=user_val, placeholder="postgres"),
             gr.update(visible=True, interactive=True, value=host_val, placeholder="e.g. db.<ref>.supabase.co or aws-0-xx.pooler.supabase.com"),
             gr.update(visible=True, interactive=True, value=port_val),
-            gr.update(visible=True, interactive=True, value=pw_val, placeholder="••••••••"),
+            gr.update(visible=True, interactive=True, value=pw_val, placeholder="••••••••", label="password", info=None),
             gr.update(label="Database Name", value=db_val, placeholder="postgres"),
             "Supabase mode: Enter Supabase host (direct db.<project-ref>.supabase.co or connection pooler), port (default 5432), database name (default 'postgres'), username (default 'postgres'), and password. SSL is automatically enforced (sslmode=require).",
         )
@@ -877,7 +884,7 @@ def handle_connect(
         config = DatabaseConfig(db_type="sqlite", database=cleaned_db)
     elif cleaned_type in ("supabase (api)", "supabase_api", "supabase-api"):
         if not cleaned_db or cleaned_pw is None or not str(cleaned_pw).strip():
-            err_msg = "Project URL/Ref ID and API Key/Token are required for Supabase (API)."
+            err_msg = "SUPABASE PROJECT ID and Personal Access Token (PAT) are required for Supabase (API)."
             logs.append(format_log_entry(f"Validation failed: {err_msg}"))
             return (
                 format_conn_status(state),

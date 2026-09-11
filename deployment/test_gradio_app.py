@@ -107,8 +107,10 @@ def test_switch_db_type():
     assert u_host["visible"] is False
     assert u_port["visible"] is False
     assert u_pw["visible"] is True
-    assert ("API Key" in u_pw["placeholder"] or "Token" in u_pw["placeholder"])
-    assert ("Project URL" in u_name["label"] or "Ref ID" in u_name["label"])
+    assert u_pw["label"] == "PAT"
+    assert "https://supabase.com/dashboard/account/tokens" in u_pw["info"]
+    assert "Personal Access Token (PAT) : [GO TO]" in u_pw["info"]
+    assert u_name["label"] == "SUPABASE PROJECT ID"
     assert "Supabase (API) mode" in hint
 
 
