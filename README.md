@@ -48,13 +48,16 @@ This project is a collaborative effort bringing together deep learning model eng
 
 - **Pernav Jain** ([@here-2007](https://github.com/here-2007) / [@Pernav](https://huggingface.co/spaces/Pernav/Text_to_SQL) / [@pernavjain](https://www.kaggle.com/pernavjain))
   - **Project Creator & Full-Stack Architect**: Designed the end-to-end multi-tier system architecture and published the Spider benchmark dataset on Kaggle ([pernavjain/natural-language-to-sql](https://www.kaggle.com/datasets/pernavjain/natural-language-to-sql)).
+  - **ML Pipeline & Data Engineering**: Authored the 10-task data processing pipeline (`data/processing/`), including SQL AST hardness classification, SQLite DDL schema serialization, prompt engineering templates, token distribution studies, and Arrow dataset compilation.
+  - **Evaluation Suite**: Built the Spider evaluation harness (`src/evaluation/evaluator.py`) measuring Exact Match (EM), multiset Execution Accuracy (EX), query timeout guards, and execution sandboxing.
   - **Cloud Deployment**: Deployed and maintained the Hugging Face Space ([Pernav/Text_to_SQL](https://huggingface.co/spaces/Pernav/Text_to_SQL)) and configured Cloudflare Workers edge routing ([text-to-sql.here-2007.workers.dev](https://text-to-sql.here-2007.workers.dev/)).
   - **Frontend Engineering**: Built the Gradio workstation UI featuring the JetBrains Mono terminal design system, connection management, dark/light themes, and client-side `localStorage` state syncing.
   - **API Gateway**: Built the production FastAPI REST service with SlowAPI rate limiting, concurrency queue locks, and typed client SDKs.
 
 - **Harshit Sharma** ([@harshitthek](https://github.com/harshitthek) / [@harshitxdev](https://www.kaggle.com/harshitxdev))
-  - **Machine Learning & Model Training**: Orchestrated QLoRA fine-tuning on Dual NVIDIA T4 GPUs using Distributed Data Parallelism (DDP) with 4-bit NF4 quantization, 8-bit Paged AdamW, and cosine decay. Published the trained weights to [harshitxdev/text2sql-qwen](https://www.kaggle.com/models/harshitxdev/text2sql-qwen).
-  - **Inference Optimization**: Implemented memory-efficient CPU loading (`low_cpu_mem_usage=True`) for sub-3GB RAM execution, standalone weight merging, and SHA-256 artifact verification.
+  - **Model Training & Fine-Tuning**: Orchestrated QLoRA fine-tuning on Dual NVIDIA T4 GPUs using Distributed Data Parallelism (DDP) with 4-bit NF4 quantization, 8-bit Paged AdamW, and cosine decay. Published the trained weights to [harshitxdev/text2sql-qwen](https://www.kaggle.com/models/harshitxdev/text2sql-qwen).
+  - **Code Quality & Pipeline Efficiency**: Refactored the ML data pipeline and evaluation harness for runtime efficiency, enforced repository-wide Ruff linting, modernized type annotations, and eliminated memory bottlenecks.
+  - **Inference Optimization**: Implemented memory-efficient CPU loading (`low_cpu_mem_usage=True`) for sub-3GB RAM execution, inference concurrency queue tracking, standalone weight merging, and SHA-256 artifact verification.
   - **Database Integration**: Developed the passwordless Supabase (API) connection mode with OpenAPI schema introspection and SQL Management API execution.
   - **Testing & Tooling**: Built isolated SQLite test fixtures and cross-platform Windows/POSIX developer portability.
 
