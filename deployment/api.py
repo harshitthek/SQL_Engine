@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import asyncio
-from contextlib import asynccontextmanager
 import logging
 import math
 import os
 import sys
 import time
-from typing import Any, Optional
+from contextlib import asynccontextmanager
+
+_THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+if _THIS_DIR not in sys.path:
+    sys.path.insert(0, _THIS_DIR)
 import uuid
 import warnings
 
@@ -87,7 +90,7 @@ class ToSQLRequest(BaseModel):
         max_length=50000,
         description="Database schema (DDL statements) providing table and column definitions.",
     )
-    dialect: Optional[str] = Field(
+    dialect: str | None = Field(
         default="sqlite",
         description="Target database SQL dialect ('sqlite', 'postgresql', 'mysql', etc.). Defaults to 'sqlite'.",
     )
@@ -170,9 +173,24 @@ class HealthResponse(BaseModel):
         ...,
         description="Hardware accelerator device hosting the model ('cuda', 'mps', 'cpu', or 'none').",
     )
-    error: Optional[str] = Field(
+    error: str | None = Field(
         default=None,
         description="Error details if the service is in degraded status.",
+    )
+    queue_depth: int = Field(
+        default=0,
+        ge=0,
+        description="Number of inference requests currently waiting in queue.",
+    )
+    total_requests: int = Field(
+        default=0,
+        ge=0,
+        description="Total number of inference requests completed since startup.",
+    )
+    last_inference_latency_ms: float | None = Field(
+        default=None,
+        ge=0.0,
+        description="Execution duration of the last completed inference request in ms.",
     )
 
 
@@ -195,7 +213,7 @@ class ErrorResponse(BaseModel):
         ...,
         description="Human-readable explanation of what caused the failure.",
     )
-    request_id: Optional[str] = Field(
+    request_id: str | None = Field(
         default=None,
         description="Correlation ID for log tracing.",
     )
@@ -219,6 +237,9 @@ async def lifespan(app: FastAPI):
     app.state.is_ready = False
     app.state.device = "none"
     app.state.startup_error = None
+    app.state.queue_depth = 0
+    app.state.total_requests = 0
+    app.state.last_inference_latency_ms = None
 
     try:
         from prediction import Text2SQLEngine
@@ -289,10 +310,14 @@ app = FastAPI(
 )
 app.state.limiter = limiter
 
+cors_origins_raw = os.getenv("CORS_ORIGINS", "*").strip()
+cors_origins = [o.strip() for o in cors_origins_raw.split(",") if o.strip()]
+allow_creds = "*" not in cors_origins
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.getenv("CORS_ORIGINS", "*").split(","),
-    allow_credentials=True,
+    allow_origins=cors_origins or ["*"],
+    allow_credentials=allow_creds,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -341,13 +366,13 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONRe
                 retry_after_seconds = max(1, int(rate_item.get_expiry()))
 
         view_rate_limit = getattr(request.state, "view_rate_limit", None)
-        l = getattr(request.app.state, "limiter", None)
-        if l:
+        limiter_inst = getattr(request.app.state, "limiter", None)
+        if limiter_inst:
             if not view_rate_limit and hasattr(exc, "limit") and exc.limit:
                 view_rate_limit = (exc.limit.limit, [client_ip])
 
             if view_rate_limit:
-                window_stats = l.limiter.get_window_stats(view_rate_limit[0], *view_rate_limit[1])
+                window_stats = limiter_inst.limiter.get_window_stats(view_rate_limit[0], *view_rate_limit[1])
                 reset_time = getattr(window_stats, "reset_time", None)
                 if reset_time is None and isinstance(window_stats, (tuple, list)) and len(window_stats) > 0:
                     reset_time = window_stats[0]
@@ -471,6 +496,9 @@ async def health(request: Request) -> HealthResponse:
     is_ready = getattr(request.app.state, "is_ready", False)
     device = getattr(request.app.state, "device", "none")
     startup_error = getattr(request.app.state, "startup_error", None)
+    queue_depth = getattr(request.app.state, "queue_depth", 0)
+    total_requests = getattr(request.app.state, "total_requests", 0)
+    last_latency = getattr(request.app.state, "last_inference_latency_ms", None)
 
     return HealthResponse(
         status="healthy" if is_ready else "degraded",
@@ -478,6 +506,9 @@ async def health(request: Request) -> HealthResponse:
         uptime_seconds=uptime,
         device=device,
         error=startup_error if not is_ready else None,
+        queue_depth=queue_depth,
+        total_requests=total_requests,
+        last_inference_latency_ms=last_latency,
     )
 
 
@@ -534,30 +565,35 @@ async def tosql(
             },
         )
 
+    # Increment queue depth while waiting for / executing inference
+    request.app.state.queue_depth = getattr(request.app.state, "queue_depth", 0) + 1
+    acquired = False
+
     # 2. Acquire lock with bounded wait protection
     lock: asyncio.Lock = request.app.state.inference_lock
     try:
-        await asyncio.wait_for(
-            lock.acquire(),
-            timeout=INFERENCE_QUEUE_TIMEOUT_SECONDS,
-        )
-    except asyncio.TimeoutError:
-        logger.warning(
-            f"[{req_id}] Inference queue wait exceeded {INFERENCE_QUEUE_TIMEOUT_SECONDS}s limit. Server busy."
-        )
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={
-                "error_code": ErrorCode.SERVICE_BUSY,
-                "message": (
-                    f"Inference queue timeout: server is currently saturated "
-                    f"({INFERENCE_QUEUE_TIMEOUT_SECONDS}s wait limit exceeded)."
-                ),
-            },
-        )
+        try:
+            await asyncio.wait_for(
+                lock.acquire(),
+                timeout=INFERENCE_QUEUE_TIMEOUT_SECONDS,
+            )
+            acquired = True
+        except TimeoutError as exc:
+            logger.warning(
+                f"[{req_id}] Inference queue wait exceeded {INFERENCE_QUEUE_TIMEOUT_SECONDS}s limit. Server busy."
+            )
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={
+                    "error_code": ErrorCode.SERVICE_BUSY,
+                    "message": (
+                        f"Inference queue timeout: server is currently saturated "
+                        f"({INFERENCE_QUEUE_TIMEOUT_SECONDS}s wait limit exceeded)."
+                    ),
+                },
+            ) from exc
 
-    # 3. Perform synchronized inference offloaded to worker thread
-    try:
+        # 3. Perform synchronized inference offloaded to worker thread
         t_start = time.perf_counter()
 
         sql = await asyncio.to_thread(
@@ -570,6 +606,8 @@ async def tosql(
         )
 
         elapsed_ms = round((time.perf_counter() - t_start) * 1000.0, 2)
+        request.app.state.total_requests = getattr(request.app.state, "total_requests", 0) + 1
+        request.app.state.last_inference_latency_ms = elapsed_ms
         logger.info(f"[{req_id}] SQL generated in {elapsed_ms}ms (model={MODEL_VERSION})")
 
         return ToSQLResponse(
@@ -579,6 +617,8 @@ async def tosql(
             generation_time_ms=elapsed_ms,
         )
 
+    except HTTPException:
+        raise
     except Exception as exc:
         logger.error(f"[{req_id}] Model inference failed during generation: {exc}", exc_info=True)
         raise HTTPException(
@@ -587,10 +627,11 @@ async def tosql(
                 "error_code": ErrorCode.INFERENCE_FAILED,
                 "message": f"Inference execution failed: {str(exc)}",
             },
-        )
+        ) from exc
     finally:
-        # Guarantee lock is released for subsequent queued requests
-        lock.release()
+        request.app.state.queue_depth = max(0, getattr(request.app.state, "queue_depth", 1) - 1)
+        if acquired:
+            lock.release()
 
 
 @app.post(
@@ -625,7 +666,7 @@ async def reload_model(request: Request) -> HealthResponse:
             )
 
     logger.info(f"[{req_id}] Manual model reload requested.")
-    lock: Optional[asyncio.Lock] = getattr(request.app.state, "inference_lock", None)
+    lock: asyncio.Lock | None = getattr(request.app.state, "inference_lock", None)
     if lock:
         async with lock:
             try:
@@ -662,6 +703,7 @@ async def reload_model(request: Request) -> HealthResponse:
 
 if __name__ == "__main__":
     import os
+
     import uvicorn
 
     host = os.getenv("API_HOST", "0.0.0.0")
