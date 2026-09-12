@@ -153,4 +153,53 @@ def test_app_main_and_repo_dir():
         assert repo_dir in sys.path
 
 
+def test_is_backend_healthy_degraded():
+    with patch("requests.Session.get") as mock_get:
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {"status": "degraded", "error": "Model weight corrupt"}
+        mock_get.return_value = mock_resp
+        assert is_backend_healthy("http://127.0.0.1:8000") is False
+
+
+def test_app_main_blocks_when_backend_not_healthy():
+    import runpy
+    import pytest
+    repo_dir = app.REPO_DIR
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 503
+
+    mock_proc = MagicMock()
+    mock_proc.poll.return_value = 1
+    mock_proc.returncode = 1
+
+    with patch.dict(os.environ, {"FASTAPI_NO_AUTOSTART": "0", "FASTAPI_URL": "http://127.0.0.1:8000"}), \
+         patch("requests.Session.get", return_value=mock_resp), \
+         patch("subprocess.Popen", return_value=mock_proc), \
+         patch("atexit.register"), \
+         patch("gradio_app.launch") as mock_launch:
+        with pytest.raises(SystemExit) as exc_info:
+            runpy.run_path(os.path.join(repo_dir, "app.py"), run_name="__main__")
+        assert exc_info.value.code == 1
+        mock_launch.assert_not_called()
+
+
+def test_app_main_launches_when_backend_healthy():
+    import runpy
+    repo_dir = app.REPO_DIR
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {"status": "healthy"}
+
+    with patch.dict(os.environ, {"FASTAPI_NO_AUTOSTART": "0", "FASTAPI_URL": "http://127.0.0.1:8000"}), \
+         patch("requests.Session.get", return_value=mock_resp), \
+         patch("subprocess.Popen"), \
+         patch("atexit.register"), \
+         patch("gradio_app.launch") as mock_launch:
+        runpy.run_path(os.path.join(repo_dir, "app.py"), run_name="__main__")
+        mock_launch.assert_called_once()
+
+
 

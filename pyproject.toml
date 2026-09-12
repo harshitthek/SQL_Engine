@@ -2,7 +2,7 @@
 name = "sql-engine"
 version = "1.0.0"
 description = "Production Text-to-SQL engine fine-tuned on Spider benchmark with Qwen2.5-Coder-1.5B"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 readme = "README.md"
 license = {text = "MIT"}
 
@@ -18,7 +18,7 @@ ignore = [
 ]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 strict = true
 
 [tool.pytest.ini_options]

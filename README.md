@@ -17,7 +17,7 @@ app_file: deployment/app.py
 [![Kaggle Model](https://img.shields.io/badge/Kaggle-harshitxdev%2Ftext2sql--qwen-20BEFF?logo=kaggle&logoColor=white)](https://www.kaggle.com/models/harshitxdev/text2sql-qwen)
 [![Kaggle Dataset](https://img.shields.io/badge/Kaggle-Spider%20Dataset-20BEFF?logo=kaggle&logoColor=white)](https://www.kaggle.com/datasets/pernavjain/natural-language-to-sql)
 [![Benchmark](https://img.shields.io/badge/Benchmark-Yale%20Spider-8B0000)](https://yale-lily.github.io/spider)
-[![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.12%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Gradio](https://img.shields.io/badge/Gradio-6.0%2B-FF7C00?logo=gradio&logoColor=white)](https://gradio.app/)
 [![Tests](https://img.shields.io/badge/Tests-233%20Passing-brightgreen?logo=pytest&logoColor=white)](#-testing--quality-assurance)
@@ -242,7 +242,7 @@ SELECT COALESCE(salary, 0) FROM employees WHERE EXTRACT(YEAR FROM hire_date) = 2
 ### Option 1: Local Installation
 
 #### 1. Prerequisites
-- Python 3.11+
+- Python 3.12+
 - Git
 
 #### 2. Clone and Install Dependencies

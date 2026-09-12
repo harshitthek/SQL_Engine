@@ -30,13 +30,21 @@ logger = logging.getLogger("app")
 
 
 def is_backend_healthy(url: str) -> bool:
-    """Check if FastAPI /health responds with 200."""
+    """Check if FastAPI /health responds with 200 and model status is healthy."""
     try:
         s = requests.Session()
         s.trust_env = False
         s.proxies = {"http": None, "https": None}
-        r = s.get(f"{url.rstrip('/')}/health", timeout=1.5)
-        return r.status_code == 200
+        r = s.get(f"{url.rstrip('/')}/health", timeout=2.0)
+        if r.status_code == 200:
+            try:
+                data = r.json()
+                if isinstance(data, dict) and "status" in data:
+                    return data["status"] == "healthy"
+            except Exception:
+                pass
+            return True
+        return False
     except Exception:
         return False
 
@@ -44,7 +52,8 @@ def is_backend_healthy(url: str) -> bool:
 def ensure_backend() -> subprocess.Popen | None:
     """
     Ensure the FastAPI backend is running if configured for loopback.
-    Auto-spawns uvicorn in a background process if not already running.
+    Auto-spawns uvicorn in a background process if not already running,
+    and waits until the model is loaded and /health returns healthy.
     """
     if os.getenv("FASTAPI_NO_AUTOSTART") == "1":
         return None
@@ -78,19 +87,26 @@ def ensure_backend() -> subprocess.Popen | None:
 
     atexit.register(_cleanup)
 
-    # Wait up to 120s for the backend to complete startup (model download + load can take ~60s on HF Spaces)
-    startup_timeout = float(os.getenv("FASTAPI_STARTUP_TIMEOUT", "120"))
+    # Wait for the backend to complete startup (downloading model + loading weights).
+    # Model download can take several minutes on first run (2.45GB weights).
+    startup_timeout = float(os.getenv("FASTAPI_STARTUP_TIMEOUT", "600"))
     t_start = time.time()
+    last_log = t_start
+    logger.info(f"Waiting for FastAPI backend to load model at {api_url} (timeout={int(startup_timeout)}s)...")
     while time.time() - t_start < startup_timeout:
         if is_backend_healthy(api_url):
-            logger.info(f"FastAPI gateway became ready in {time.time() - t_start:.1f}s at {api_url}")
+            logger.info(f"FastAPI gateway and model became ready in {time.time() - t_start:.1f}s at {api_url}")
             return proc
         if proc.poll() is not None:
-            logger.warning(f"FastAPI process exited prematurely with returncode {proc.returncode}")
+            logger.error(f"FastAPI process exited prematurely with returncode {proc.returncode}")
             break
+        if time.time() - last_log >= 15.0:
+            logger.info(f"Still waiting for model to load at {api_url} ({int(time.time() - t_start)}s elapsed)...")
+            last_log = time.time()
         time.sleep(1.0)
 
-    logger.warning(f"FastAPI did not respond at {api_url} within {startup_timeout}s. Launching Gradio UI anyway.")
+    if not is_backend_healthy(api_url):
+        logger.error(f"FastAPI model server at {api_url} failed to become ready within {startup_timeout}s.")
     return proc
 
 
@@ -107,4 +123,12 @@ if __name__ == "__main__":
         launch()
     else:
         ensure_backend()
+        api_url = os.getenv("FASTAPI_URL", "http://127.0.0.1:8000")
+        if os.getenv("FASTAPI_NO_AUTOSTART") != "1" and not is_backend_healthy(api_url):
+            logger.error(
+                f"Model is not loaded. Cannot launch Gradio UI because FastAPI inference server at {api_url} is not ready. "
+                "Aborting startup."
+            )
+            sys.exit(1)
+        logger.info("Model verified healthy. Launching Gradio UI...")
         launch()
