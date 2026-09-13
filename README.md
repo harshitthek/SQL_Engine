@@ -51,15 +51,16 @@ This project is a collaborative effort bringing together deep learning model eng
   - **ML Pipeline & Data Engineering**: Authored the 10-task data processing pipeline (`data/processing/`), including SQL AST hardness classification, SQLite DDL schema serialization, prompt engineering templates, token distribution studies, and Arrow dataset compilation.
   - **Evaluation Suite**: Built the Spider evaluation harness (`src/evaluation/evaluator.py`) measuring Exact Match (EM), multiset Execution Accuracy (EX), query timeout guards, and execution sandboxing.
   - **Cloud Deployment**: Deployed and maintained the Hugging Face Space ([Pernav/Text_to_SQL](https://huggingface.co/spaces/Pernav/Text_to_SQL)) and configured Cloudflare Workers edge routing ([text-to-sql.here-2007.workers.dev](https://text-to-sql.here-2007.workers.dev/)).
-  - **Frontend Engineering**: Built the Gradio workstation UI featuring the JetBrains Mono terminal design system, connection management, dark/light themes, and client-side `localStorage` state syncing.
   - **API Gateway**: Built the production FastAPI REST service with SlowAPI rate limiting, concurrency queue locks, and typed client SDKs.
 
 - **Harshit Sharma** ([@harshitthek](https://github.com/harshitthek) / [@harshitxdev](https://www.kaggle.com/harshitxdev))
-  - **Model Training & Fine-Tuning**: Orchestrated QLoRA fine-tuning on Dual NVIDIA T4 GPUs using Distributed Data Parallelism (DDP) with 4-bit NF4 quantization, 8-bit Paged AdamW, and cosine decay. Published the trained weights to [harshitxdev/text2sql-qwen](https://www.kaggle.com/models/harshitxdev/text2sql-qwen).
-  - **Code Quality & Pipeline Efficiency**: Refactored the ML data pipeline and evaluation harness for runtime efficiency, enforced repository-wide Ruff linting, modernized type annotations, and eliminated memory bottlenecks.
-  - **Inference Optimization**: Implemented memory-efficient CPU loading (`low_cpu_mem_usage=True`) for sub-3GB RAM execution, inference concurrency queue tracking, standalone weight merging, and SHA-256 artifact verification.
-  - **Database Integration**: Developed the passwordless Supabase (API) connection mode with OpenAPI schema introspection and SQL Management API execution.
-  - **Testing & Tooling**: Built isolated SQLite test fixtures and cross-platform Windows/POSIX developer portability.
+  - **Lead ML Engineer & System Co-Architect**: Co-architected model training, inference optimization, and modern workstation engineering. Published the standalone trained FP16 weights and tokenizer to Kaggle ([harshitxdev/text2sql-qwen](https://www.kaggle.com/models/harshitxdev/text2sql-qwen)).
+  - **Distributed Model Fine-Tuning**: Orchestrated end-to-end QLoRA fine-tuning of Qwen2.5-Coder-1.5B on Dual NVIDIA T4 GPUs using PyTorch Distributed Data Parallelism (DDP) with 4-bit NF4 double quantization, 8-bit Paged AdamW, warmup-cosine learning rate decay, and gradient checkpointing.
+  - **Inference Optimization & Edge Serving**: Engineered sub-3GB RAM CPU weight streaming (`low_cpu_mem_usage=True`) for memory-constrained edge runtimes, real-time inference queue depth tracking, latency profiling, standalone FP16 weight merging, and SHA-256 artifact verification.
+  - **Workstation UI Architecture & UX Redesign**: Architected the complete modern Workstation redesign into a responsive three-column layout with dual-theme styling (pure white `#FFFFFF` light canvas and midnight obsidian `#0B0F19` dark canvas), instant client-side theme switcher, and persistent `localStorage` synchronization.
+  - **Interactive Systems & Non-Mock Handlers**: Implemented 100% functional, non-mock interactive workstation controls: 1-click SQLite sample database Quick Start flow, real-time log navigation jumper with smooth-scroll targeting, terminal clipboard controls (`Copy Logs` / `Clear Logs`), omnibox search with global `⌘K` / `Ctrl+K` shortcuts, dynamic breadcrumbs, and interactive KPI metrics drill-downs.
+  - **Database Connectivity & Dialect Harmonization**: Developed the passwordless Supabase (API) connection engine with OpenAPI schema introspection and SQL Management API execution. Built automated dialect adaptation across SQLite, PostgreSQL, MySQL, and Supabase.
+  - **Testing Infrastructure & Portability**: Authored automated end-to-end Playwright browser testing suites, 59-test Gradio unit test suite (`test_gradio_app.py`), isolated mock database fixtures, repository-wide Ruff linting enforcement, and cross-platform Windows/POSIX developer portability.
 
 ---
 
