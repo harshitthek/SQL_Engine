@@ -199,6 +199,63 @@ BANNER_DISMISS_SCRIPT = """
         } catch (e) {}
     }
 
+    function syncThemeUI(isDark) {
+        if (isDark) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.classList.remove('light');
+            document.documentElement.setAttribute('data-theme', 'dark');
+            if (document.body) {
+                document.body.classList.add('dark');
+                document.body.classList.remove('light');
+                document.body.setAttribute('data-theme', 'dark');
+            }
+        } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.classList.add('light');
+            document.documentElement.setAttribute('data-theme', 'light');
+            if (document.body) {
+                document.body.classList.remove('dark');
+                document.body.classList.add('light');
+                document.body.setAttribute('data-theme', 'light');
+            }
+        }
+        document.querySelectorAll('.snow-theme-toggle-btn, #snow-theme-toggle-btn').forEach(function(btn) {
+            btn.textContent = isDark ? '☀️' : '🌙';
+            btn.setAttribute('title', isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme');
+        });
+    }
+
+    function initTheme() {
+        try {
+            var saved = localStorage.getItem('color-theme');
+            var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            var isDark = saved === 'dark' || (!saved && prefersDark);
+            syncThemeUI(isDark);
+        } catch (e) {}
+    }
+
+    function setNavActive(mode) {
+        var sideBtns = document.querySelectorAll('.snow-side-btn');
+        sideBtns.forEach(function(btn) {
+            btn.classList.remove('active');
+        });
+        if (mode === 'workspace' && sideBtns[0]) {
+            sideBtns[0].classList.add('active');
+        } else if (mode === 'set_db' && sideBtns[1]) {
+            sideBtns[1].classList.add('active');
+        } else if (mode === 'logs' && sideBtns[3]) {
+            sideBtns[3].classList.add('active');
+        }
+        var breadcrumbCurrent = document.querySelector('.snow-breadcrumb-current');
+        if (breadcrumbCurrent) {
+            breadcrumbCurrent.textContent = (mode === 'set_db' || mode === 'logs') ? 'Database Manager' : 'Query Studio';
+        }
+    }
+
+    window.__sql_engine_sync_theme = syncThemeUI;
+    window.__sql_engine_init_theme = initTheme;
+    window.__sql_engine_set_nav_active = setNavActive;
+
     function initBannerDismiss() {
         try {
             if (sessionStorage.getItem('dismiss_local_run_banner') === '1') {
@@ -206,11 +263,53 @@ BANNER_DISMISS_SCRIPT = """
             }
         } catch (e) {}
 
+        initTheme();
+
         if (window.__sql_engine_banner_listener_attached) return;
         window.__sql_engine_banner_listener_attached = true;
 
+        // Global shortcut ⌘K / Ctrl+K and search submit on Enter
+        document.addEventListener('keydown', function(e) {
+            if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+                e.preventDefault();
+                var searchInput = document.getElementById('snow-search-input') || document.querySelector('.snow-search-input');
+                if (searchInput) {
+                    searchInput.focus();
+                    searchInput.select();
+                }
+            }
+            if (e.key === 'Enter') {
+                var searchInput = document.getElementById('snow-search-input') || document.querySelector('.snow-search-input');
+                if (document.activeElement === searchInput && searchInput && searchInput.value.trim()) {
+                    e.preventDefault();
+                    var val = searchInput.value.trim();
+                    var questionBox = document.querySelector('#question_input textarea') || document.querySelector('.snow-center-content textarea');
+                    if (questionBox) {
+                        var qText = val;
+                        var low = val.toLowerCase();
+                        if (low === 'employees' || low === 'departments' || low === 'sales') {
+                            qText = 'Show all records from ' + low;
+                        }
+                        questionBox.value = qText;
+                        questionBox.dispatchEvent(new Event('input', { bubbles: true }));
+                        var wsTab = document.querySelector('button[data-tab-id="workspace"]');
+                        if (wsTab) wsTab.click();
+                        setNavActive('workspace');
+                        questionBox.focus();
+                        questionBox.style.transition = 'box-shadow 0.3s ease';
+                        questionBox.style.boxShadow = '0 0 0 3px rgba(220, 38, 38, 0.45)';
+                        setTimeout(function() { questionBox.style.boxShadow = ''; }, 1200);
+                        searchInput.value = '';
+                    }
+                }
+            }
+        });
+
         document.addEventListener('click', function(e) {
             var target = e.target && e.target.nodeType === 3 ? e.target.parentElement : e.target;
+            if (!target) return;
+            
+            // Banner dismiss button
             var btn = (target && target.closest) ? target.closest('#banner-dismiss-btn, .banner-close-btn') : null;
             if (!btn && target && (target.id === 'banner-dismiss-btn' || (target.classList && target.classList.contains('banner-close-btn')))) {
                 btn = target;
@@ -219,12 +318,80 @@ BANNER_DISMISS_SCRIPT = """
                 e.preventDefault();
                 e.stopPropagation();
                 dismissTopBanner();
+                return;
+            }
+
+            // Theme toggle button
+            var themeBtn = (target && target.closest) ? target.closest('.snow-theme-toggle-btn, #snow-theme-toggle-btn') : null;
+            if (themeBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                var currentIsDark = document.documentElement.classList.contains('dark') || (document.body && document.body.classList.contains('dark'));
+                var nextIsDark = !currentIsDark;
+                try {
+                    localStorage.setItem('color-theme', nextIsDark ? 'dark' : 'light');
+                } catch (err) {}
+                syncThemeUI(nextIsDark);
+                return;
+            }
+
+            // Direct Gradio Tab button clicks -> sync sidebar and breadcrumb
+            var tabBtn = target.closest ? target.closest('button[data-tab-id]') : null;
+            if (tabBtn) {
+                var tabId = tabBtn.getAttribute('data-tab-id');
+                if (tabId === 'workspace' || tabId === 'set_db') {
+                    setNavActive(tabId);
+                }
+            }
+
+            // KPI card interactive clicks
+            var kpiCard = target.closest ? target.closest('.status-card') : null;
+            if (kpiCard) {
+                if (kpiCard.classList.contains('kpi-card-coral')) {
+                    var refBtn = document.querySelector('.snow-refresh-btn');
+                    if (refBtn) refBtn.click();
+                } else {
+                    var setTab = document.querySelector('button[data-tab-id="set_db"]') || document.querySelector('.header-nav-btn');
+                    if (setTab) setTab.click();
+                    setNavActive('set_db');
+                }
+                return;
+            }
+
+            // Notifications card click -> switch to Set Database to check connection
+            var notifCard = target.closest ? target.closest('.snow-notif-card') : null;
+            if (notifCard) {
+                var setTab2 = document.querySelector('button[data-tab-id="set_db"]');
+                if (setTab2) setTab2.click();
+                setNavActive('set_db');
+                return;
+            }
+
+            // Activities card click -> jump to Activity & Logs
+            var actCard = target.closest ? target.closest('.snow-activity-card') : null;
+            if (actCard) {
+                var sideBtns = document.querySelectorAll('.snow-side-btn');
+                if (sideBtns && sideBtns[3]) sideBtns[3].click();
+                return;
+            }
+
+            // Pro Tips card click -> trigger first chip
+            var tipCard = target.closest ? target.closest('.snow-pro-tip-card') : null;
+            if (tipCard) {
+                var firstChip = document.querySelector('.snow-chip-btn');
+                if (firstChip) firstChip.click();
+                var wsTab2 = document.querySelector('button[data-tab-id="workspace"]');
+                if (wsTab2) wsTab2.click();
+                setNavActive('workspace');
+                return;
             }
         }, true);
     }
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initBannerDismiss);
+        document.addEventListener('DOMContentLoaded', function() {
+            initBannerDismiss();
+        });
     } else {
         initBannerDismiss();
     }
@@ -389,193 +556,862 @@ def redact_credentials(text: str, password: str | None = None) -> str:
 # ---------------------------------------------------------------------------
 
 CUSTOM_CSS = """
-/* Developer Workstation Dark Theme */
-:root {
-    --bg-main: #070a09;
-    --bg-card: #0b110f;
-    --bg-card-hover: #0e1714;
-    --border-green: #15803d;
-    --border-bright: #22c55e;
-    --border-subtle: #143825;
-    --text-primary: #ecfdf5;
-    --text-accent: #4ade80;
-    --text-muted: #6ee7b7;
-    --text-dim: #059669;
-    --font-mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, monospace;
+/* ==========================================================================
+   Snow Dashboard UI Kit - Dual-Theme Architecture (Light & Dark)
+   White Canvas in Light Mode, Obsidian in Dark Mode, Warm Yellow/Red in Both
+   ========================================================================== */
+
+:root, .light, html.light, body.light, [data-theme="light"] {
+    --snow-bg-canvas: #FFFFFF;
+    --snow-bg-card: #FFFFFF;
+    --snow-bg-card-hover: #FFFDF5;
+    --snow-border: #E5E7EB;
+    --snow-border-hover: #FCD34D;
+    --snow-border-focus: #DC2626;
+    --snow-text-primary: #18181B;
+    --snow-text-secondary: #3F3F46;
+    --snow-text-muted: #71717A;
+    --snow-accent: #DC2626;
+    --snow-accent-hover: #B91C1C;
+    --snow-accent-tint: #FEF2F2;
+    --snow-accent-text: #DC2626;
+    --snow-kpi-yellow-bg: #FEF9C3;
+    --snow-kpi-yellow-border: #FDE047;
+    --snow-kpi-yellow-text: #854D0E;
+    --snow-kpi-red-bg: #FFE4E6;
+    --snow-kpi-red-border: #FECDD3;
+    --snow-kpi-red-text: #9F1239;
+    --snow-kpi-amber-bg: #FEF3C7;
+    --snow-kpi-amber-border: #FCD34D;
+    --snow-kpi-coral-bg: #FEE2E2;
+    --snow-kpi-coral-border: #FECACA;
+    --snow-search-bg: #FFFDF5;
+    --snow-search-border: #FDE68A;
+    --snow-search-icon: #92400E;
+    --snow-banner-bg: #FEF9C3;
+    --snow-banner-border: #FDE68A;
+    --snow-banner-text: #78350F;
+    --snow-btn-sec-bg: #FEF9C3;
+    --snow-btn-sec-border: #FDE047;
+    --snow-btn-sec-text: #78350F;
+    --snow-btn-sec-hover: #FEF08A;
+    --snow-avatar-bg: linear-gradient(135deg, #FEF9C3 0%, #FFE4E6 100%);
+    --snow-avatar-border: #FDE047;
+    --snow-chip-bg: #FEF9C3;
+    --snow-chip-border: #FDE047;
+    --snow-chip-text: #854D0E;
+    --snow-chip-hover-bg: #FEE2E2;
+    --snow-chip-hover-border: #FCA5A5;
+    --snow-chip-hover-text: #DC2626;
+    --snow-quick-bg: linear-gradient(135deg, #FEF9C3 0%, #FFE4E6 100%);
+    --snow-quick-border: #FDE68A;
+    --snow-tab-hover-bg: #FEF9C3;
+    --snow-tab-active-bg: #FEE2E2;
+    --snow-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --snow-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --snow-shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 4px 12px -2px rgba(0, 0, 0, 0.03);
+    --snow-shadow-hover: 0 4px 12px -1px rgba(220, 38, 38, 0.08);
+}
+
+:root.dark, html.dark, body.dark, .dark, .dark .gradio-container, body.dark .gradio-container, html.dark .gradio-container, [data-theme="dark"], [data-theme="dark"] .gradio-container {
+    --snow-bg-canvas: #0B0F19;
+    --snow-bg-card: #111827;
+    --snow-bg-card-hover: #1F2937;
+    --snow-border: #1F2937;
+    --snow-border-hover: #D97706;
+    --snow-border-focus: #EF4444;
+    --snow-text-primary: #F9FAFB;
+    --snow-text-secondary: #E5ECF6;
+    --snow-text-muted: #9CA3AF;
+    --snow-accent: #EF4444;
+    --snow-accent-hover: #DC2626;
+    --snow-accent-tint: #2B1117;
+    --snow-accent-text: #FCA5A5;
+    --snow-kpi-yellow-bg: #2B2105;
+    --snow-kpi-yellow-border: #B45309;
+    --snow-kpi-yellow-text: #FEF08A;
+    --snow-kpi-red-bg: #311018;
+    --snow-kpi-red-border: #9F1239;
+    --snow-kpi-red-text: #FECDD3;
+    --snow-kpi-amber-bg: #281905;
+    --snow-kpi-amber-border: #D97706;
+    --snow-kpi-coral-bg: #2D0F14;
+    --snow-kpi-coral-border: #BE123C;
+    --snow-search-bg: #111827;
+    --snow-search-border: #374151;
+    --snow-search-icon: #FBBF24;
+    --snow-banner-bg: #2B2105;
+    --snow-banner-border: #B45309;
+    --snow-banner-text: #FEF08A;
+    --snow-btn-sec-bg: #1F2937;
+    --snow-btn-sec-border: #374151;
+    --snow-btn-sec-text: #FEF08A;
+    --snow-btn-sec-hover: #374151;
+    --snow-avatar-bg: linear-gradient(135deg, #2B2105 0%, #311018 100%);
+    --snow-avatar-border: #B45309;
+    --snow-chip-bg: #2B2105;
+    --snow-chip-border: #B45309;
+    --snow-chip-text: #FEF08A;
+    --snow-chip-hover-bg: #311018;
+    --snow-chip-hover-border: #9F1239;
+    --snow-chip-hover-text: #FECDD3;
+    --snow-quick-bg: linear-gradient(135deg, #2B2105 0%, #311018 100%);
+    --snow-quick-border: #B45309;
+    --snow-tab-hover-bg: #2B2105;
+    --snow-tab-active-bg: #311018;
+    --snow-shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 4px 12px -2px rgba(0, 0, 0, 0.3);
+    --snow-shadow-hover: 0 4px 12px -1px rgba(239, 68, 68, 0.15);
 }
 
 body, .gradio-container {
-    background-color: var(--bg-main) !important;
-    color: var(--text-primary) !important;
-    font-family: var(--font-mono) !important;
+    background-color: var(--snow-bg-canvas) !important;
+    color: var(--snow-text-primary) !important;
+    font-family: var(--snow-font-sans) !important;
+    letter-spacing: -0.01em !important;
 }
 
-/* Header status cards */
-.status-card {
-    background: var(--bg-card) !important;
-    border: 1px solid var(--border-green) !important;
-    border-radius: 10px !important;
-    padding: 12px 16px !important;
-    box-shadow: 0 0 10px rgba(22, 163, 74, 0.1) !important;
-    transition: all 0.2s ease-in-out;
-}
-.status-card:hover {
-    border-color: var(--border-bright) !important;
-    box-shadow: 0 0 14px rgba(34, 197, 94, 0.2) !important;
+.gradio-container {
+    max-width: 1540px !important;
+    padding: 16px 24px !important;
+    margin: 0 auto !important;
 }
 
-.status-label {
-    font-size: 11px !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.08em !important;
-    color: var(--text-dim) !important;
-    margin-bottom: 4px !important;
+/* -------------------------------------------------------------
+   Snow Top Header Bar (Breadcrumbs, Search Bar, Header Actions)
+   ------------------------------------------------------------- */
+.snow-header-bar {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    background: var(--snow-bg-card) !important;
+    border: 1px solid var(--snow-border) !important;
+    border-radius: 14px !important;
+    padding: 8px 18px !important;
+    margin-bottom: 16px !important;
+    box-shadow: var(--snow-shadow-card) !important;
 }
 
-.status-value {
-    font-size: 14px !important;
-    font-weight: 600 !important;
-    color: var(--text-accent) !important;
+.snow-breadcrumb-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
 }
 
-/* Nav & Primary Buttons */
-.btn-primary-green {
-    background-color: #166534 !important;
-    color: #f0fdf4 !important;
-    border: 1px solid var(--border-bright) !important;
-    border-radius: 8px !important;
-    font-weight: 600 !important;
-    font-family: var(--font-mono) !important;
-    transition: all 0.2s !important;
-}
-.btn-primary-green:hover {
-    background-color: #15803d !important;
-    box-shadow: 0 0 12px rgba(34, 197, 94, 0.4) !important;
+.snow-breadcrumb-icon {
+    font-size: 16px;
 }
 
-.btn-secondary-green {
-    background-color: #0b1411 !important;
-    color: var(--text-accent) !important;
-    border: 1px solid var(--border-green) !important;
-    border-radius: 8px !important;
-    font-family: var(--font-mono) !important;
-    transition: all 0.2s !important;
-}
-.btn-secondary-green:hover {
-    border-color: var(--border-bright) !important;
-    background-color: #13221c !important;
+.snow-breadcrumb-root {
+    color: var(--snow-text-muted);
 }
 
-/* Terminal container */
-.terminal-panel {
-    background: #050807 !important;
-    border: 1px solid var(--border-green) !important;
-    border-radius: 10px !important;
-    padding: 14px !important;
-    box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.8) !important;
+.snow-breadcrumb-sep {
+    color: #CBD5E1;
 }
 
-/* Textboxes and Inputs */
-textarea, input[type="text"], input[type="password"], input[type="number"], .gr-input {
-    background-color: #080d0b !important;
-    color: #f0fdf4 !important;
-    border: 1px solid var(--border-green) !important;
-    border-radius: 8px !important;
-    font-family: var(--font-mono) !important;
-}
-textarea:focus, input:focus {
-    border-color: var(--border-bright) !important;
-    outline: none !important;
-    box-shadow: 0 0 8px rgba(34, 197, 94, 0.3) !important;
+.snow-breadcrumb-current {
+    color: var(--snow-text-primary);
+    font-weight: 700;
 }
 
-/* Logs panel */
-.logs-box textarea {
-    background-color: #040706 !important;
-    color: #4ade80 !important;
-    border: 1px solid var(--border-green) !important;
-    font-family: var(--font-mono) !important;
+.snow-search-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--snow-search-bg) !important;
+    border: 1px solid var(--snow-search-border) !important;
+    border-radius: 10px;
+    padding: 6px 14px;
+    width: 100%;
+    max-width: 380px;
+}
+
+.snow-search-box .search-icon {
+    color: var(--snow-search-icon) !important;
+    flex-shrink: 0;
+}
+
+.snow-search-input {
+    border: none !important;
+    background: transparent !important;
+    color: var(--snow-text-primary) !important;
     font-size: 12px !important;
-    line-height: 1.4 !important;
+    outline: none !important;
+    width: 100% !important;
+    padding: 0 !important;
+    box-shadow: none !important;
 }
 
-/* Tab bar */
-.tabs > .tab-nav, div[role="tablist"] {
-    border-bottom: 1px solid var(--border-subtle) !important;
-}
-.tab-nav button, div[role="tablist"] button {
-    font-family: var(--font-mono) !important;
-    font-weight: 600 !important;
-    color: #86efac !important;
-}
-.tab-nav button.selected, div[role="tablist"] button[aria-selected="true"], div[role="tablist"] button.selected {
-    color: #4ade80 !important;
-    border-bottom: 2px solid var(--border-bright) !important;
+.snow-kbd-shortcut {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--snow-search-icon) !important;
+    background: var(--snow-btn-sec-bg) !important;
+    border: 1px solid var(--snow-search-border) !important;
+    border-radius: 6px;
+    padding: 2px 6px;
+    flex-shrink: 0;
 }
 
-/* Header layout */
-.header-row {
-    align-items: stretch !important;
-    gap: 10px !important;
-    margin-bottom: 12px !important;
+.snow-header-actions {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
 }
+
+.snow-header-actions-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: auto !important;
+}
+
+.snow-header-actions-row > div,
+.snow-header-actions-row > .block {
+    min-width: 0 !important;
+    width: auto !important;
+    flex: 0 0 auto !important;
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+}
+
 .nav-button-container {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
 }
+
 .header-nav-btn {
-    height: 100% !important;
-    min-height: 52px !important;
-    width: 100% !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 0 16px !important;
+    font-size: 12px !important;
+    width: auto !important;
+    min-width: 140px !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
 }
 
-/* Permanent Top-Right GitHub Logo */
+.snow-refresh-btn {
+    height: 36px !important;
+    min-height: 36px !important;
+    width: 36px !important;
+    min-width: 36px !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 15px !important;
+    flex-shrink: 0 !important;
+}
+
+/* -------------------------------------------------------------
+   Snow App Layout (3-Column Architecture)
+   ------------------------------------------------------------- */
+.snow-app-layout {
+    display: flex !important;
+    gap: 16px !important;
+    align-items: flex-start !important;
+}
+
+/* Left Sidebar */
+.snow-sidebar {
+    background: var(--snow-bg-card) !important;
+    border: 1px solid var(--snow-border) !important;
+    border-radius: 16px !important;
+    padding: 16px 12px !important;
+    box-shadow: var(--snow-shadow-card) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+}
+
+.snow-sidebar > div,
+.snow-sidebar > .block {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+}
+
+.snow-profile-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    margin-bottom: 4px;
+}
+
+.snow-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: var(--snow-avatar-bg) !important;
+    border: 1px solid var(--snow-avatar-border) !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.snow-user-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--snow-text-primary);
+    line-height: 1.2;
+}
+
+.snow-user-badge {
+    font-size: 11px;
+    color: var(--snow-text-muted);
+}
+
+.snow-nav-divider {
+    height: 1px;
+    background: var(--snow-border);
+    margin: 6px 0;
+}
+
+.snow-nav-group-title {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--snow-text-muted);
+    letter-spacing: 0.08em;
+    padding: 4px 8px;
+    text-transform: uppercase;
+}
+
+.snow-side-btn {
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    color: var(--snow-text-secondary) !important;
+    font-weight: 500 !important;
+    font-size: 12px !important;
+    text-align: left !important;
+    justify-content: flex-start !important;
+    padding: 8px 12px !important;
+    border-radius: 8px !important;
+    transition: all 0.15s ease !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    min-height: 34px !important;
+}
+
+.snow-side-btn:hover {
+    background: var(--snow-tab-hover-bg) !important;
+    color: var(--snow-chip-text) !important;
+}
+
+.snow-side-btn.active {
+    background: var(--snow-tab-active-bg) !important;
+    color: var(--snow-accent) !important;
+    font-weight: 600 !important;
+    border-left: 3px solid var(--snow-accent) !important;
+}
+
+.snow-sidebar-footer {
+    margin-top: 20px;
+    padding: 8px 8px 2px 8px;
+    border-top: 1px solid var(--snow-border);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.snow-footer-tag {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--snow-text-primary);
+}
+
+.snow-footer-sub {
+    font-size: 10px;
+    color: var(--snow-text-muted);
+}
+
+/* -------------------------------------------------------------
+   4 Pastel KPI Cards (Alternating Lightish Yellow & Soft Red)
+   ------------------------------------------------------------- */
+.header-row,
+.snow-kpi-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+    margin-bottom: 16px !important;
+    width: 100% !important;
+    align-items: stretch !important;
+}
+
+.snow-kpi-grid > .column,
+.snow-kpi-grid > div {
+    min-width: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+}
+
+.status-card {
+    border-radius: 16px !important;
+    padding: 12px 14px !important;
+    min-height: 94px !important;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 4px 10px -2px rgba(0, 0, 0, 0.03) !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    cursor: pointer !important;
+}
+
+.status-card .block,
+.status-card > div,
+.status-card .prose {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+}
+
+.status-card .prose p,
+.status-card p {
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.25 !important;
+}
+
+.kpi-card-yellow,
+.kpi-card-blue {
+    background-color: var(--snow-kpi-yellow-bg) !important;
+    border: 1px solid var(--snow-kpi-yellow-border) !important;
+}
+
+.kpi-card-red,
+.kpi-card-periwinkle {
+    background-color: var(--snow-kpi-red-bg) !important;
+    border: 1px solid var(--snow-kpi-red-border) !important;
+}
+
+.kpi-card-amber {
+    background-color: var(--snow-kpi-amber-bg) !important;
+    border: 1px solid var(--snow-kpi-amber-border) !important;
+}
+
+.kpi-card-coral {
+    background-color: var(--snow-kpi-coral-bg) !important;
+    border: 1px solid var(--snow-kpi-coral-border) !important;
+}
+
+.status-card:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: var(--snow-shadow-hover) !important;
+}
+
+.status-label {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    color: var(--snow-text-muted) !important;
+    margin-bottom: 2px !important;
+    display: block !important;
+}
+
+.status-value {
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    color: var(--snow-text-primary) !important;
+    line-height: 1.25 !important;
+    letter-spacing: -0.01em !important;
+    font-variant-numeric: tabular-nums !important;
+    word-break: break-word !important;
+}
+
+.status-value p {
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    color: var(--snow-text-primary) !important;
+    margin: 0 !important;
+    line-height: 1.25 !important;
+}
+
+.kpi-card-yellow .status-value,
+.kpi-card-yellow .status-value p,
+.kpi-card-amber .status-value,
+.kpi-card-amber .status-value p {
+    color: var(--snow-kpi-yellow-text) !important;
+}
+
+.kpi-card-red .status-value,
+.kpi-card-red .status-value p,
+.kpi-card-coral .status-value,
+.kpi-card-coral .status-value p,
+.kpi-card-periwinkle .status-value,
+.kpi-card-periwinkle .status-value p {
+    color: var(--snow-kpi-red-text) !important;
+}
+
+.kpi-badge-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: rgba(245, 158, 11, 0.15) !important;
+    color: var(--snow-kpi-yellow-text) !important;
+    margin-top: 4px;
+    width: fit-content;
+}
+
+.kpi-card-red .kpi-badge-pill,
+.kpi-card-coral .kpi-badge-pill,
+.kpi-card-periwinkle .kpi-badge-pill {
+    background: rgba(239, 68, 68, 0.15) !important;
+    color: var(--snow-kpi-red-text) !important;
+}
+
+/* -------------------------------------------------------------
+   Snow Workspace Cards & Prompt Studio
+   ------------------------------------------------------------- */
+.snow-card,
+.terminal-panel {
+    background: var(--snow-bg-card) !important;
+    border: 1px solid var(--snow-border) !important;
+    border-radius: 16px !important;
+    padding: 20px !important;
+    box-shadow: var(--snow-shadow-card) !important;
+    margin-bottom: 16px !important;
+}
+
+/* Remove default Gradio block background inside .snow-card */
+.snow-card > .block,
+.snow-card .form,
+.snow-card .group,
+.snow-card .gr-group,
+.snow-card .styler,
+.snow-card > .styler,
+.gr-group .styler,
+.terminal-panel .styler,
+.snow-card .prose,
+.snow-card .markdown {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Prompt chips styling */
+.chips-header {
+    margin-bottom: 8px !important;
+}
+
+.chips-label {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    color: var(--snow-text-muted) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+}
+
+.snow-chips-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    margin-bottom: 12px !important;
+}
+
+.snow-chips-row > div,
+.snow-chips-row > .block {
+    min-width: 0 !important;
+    width: auto !important;
+    flex: 0 0 auto !important;
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+}
+
+.snow-chip-btn {
+    border-radius: 9999px !important;
+    background: var(--snow-chip-bg) !important;
+    border: 1px solid var(--snow-chip-border) !important;
+    color: var(--snow-chip-text) !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    padding: 5px 12px !important;
+    white-space: nowrap !important;
+    transition: all 0.15s ease !important;
+    box-shadow: none !important;
+    height: auto !important;
+    min-height: 28px !important;
+}
+
+.snow-chip-btn:hover {
+    background: var(--snow-chip-hover-bg) !important;
+    border-color: var(--snow-chip-hover-border) !important;
+    color: var(--snow-chip-hover-text) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* Primary Action Buttons - Vibrant Crimson Red */
+.btn-primary-green {
+    background-color: var(--snow-accent) !important;
+    color: #FFFFFF !important;
+    border: 1px solid var(--snow-accent) !important;
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+    font-family: var(--snow-font-sans) !important;
+    font-size: 13px !important;
+    box-shadow: 0 1px 3px 0 rgba(220, 38, 38, 0.25) !important;
+    transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.btn-primary-green:hover {
+    background-color: var(--snow-accent-hover) !important;
+    border-color: var(--snow-accent-hover) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 10px 0 rgba(220, 38, 38, 0.35) !important;
+}
+
+.btn-primary-green:active {
+    transform: scale(0.98) !important;
+}
+
+.btn-primary-green:focus-visible {
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.35) !important;
+}
+
+/* Secondary Buttons - Lightish Yellow / Slate Dark */
+.btn-secondary-green {
+    background-color: var(--snow-btn-sec-bg) !important;
+    color: var(--snow-btn-sec-text) !important;
+    border: 1px solid var(--snow-btn-sec-border) !important;
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+    font-family: var(--snow-font-sans) !important;
+    font-size: 13px !important;
+    box-shadow: var(--snow-shadow-card) !important;
+    transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.btn-secondary-green:hover {
+    background-color: var(--snow-btn-sec-hover) !important;
+    border-color: var(--snow-border-hover) !important;
+    color: var(--snow-text-primary) !important;
+    transform: translateY(-1px) !important;
+}
+
+.btn-secondary-green:active {
+    transform: scale(0.98) !important;
+}
+
+/* Textboxes and Inputs */
+textarea, input[type="text"], input[type="password"], input[type="number"], .gr-input {
+    background-color: var(--snow-bg-card) !important;
+    color: var(--snow-text-primary) !important;
+    border: 1px solid var(--snow-border) !important;
+    border-radius: 10px !important;
+    font-family: var(--snow-font-sans) !important;
+    font-size: 13px !important;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+textarea:focus, input:focus, .gr-input:focus {
+    border-color: var(--snow-border-focus) !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.18) !important;
+}
+
+/* Code block & Output Display */
+.gr-code, .cm-editor, pre {
+    font-family: var(--snow-font-mono) !important;
+    border-radius: 10px !important;
+}
+
+/* Logs panel */
+.logs-box textarea {
+    background-color: #0B0F19 !important;
+    color: #38BDF8 !important;
+    border: 1px solid #1E293B !important;
+    font-family: var(--snow-font-mono) !important;
+    font-size: 12px !important;
+    line-height: 1.5 !important;
+    border-radius: 10px !important;
+}
+
+/* Tab Bar */
+.tabs > .tab-nav, div[role="tablist"] {
+    border-bottom: 1px solid var(--snow-border) !important;
+    gap: 8px !important;
+    margin-bottom: 16px !important;
+}
+
+.tab-nav button, div[role="tablist"] button {
+    font-family: var(--snow-font-sans) !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+    color: var(--snow-text-secondary) !important;
+    border-radius: 8px 8px 0 0 !important;
+    padding: 8px 16px !important;
+    transition: all 0.15s ease !important;
+}
+
+.tab-nav button:hover, div[role="tablist"] button:hover {
+    color: var(--snow-accent) !important;
+    background: var(--snow-tab-hover-bg) !important;
+}
+
+.tab-nav button.selected, div[role="tablist"] button[aria-selected="true"], div[role="tablist"] button.selected {
+    color: var(--snow-accent) !important;
+    border-bottom: 2px solid var(--snow-accent) !important;
+    background: var(--snow-tab-active-bg) !important;
+}
+
+/* Quick sample database box */
+.snow-quick-sample-box {
+    background: var(--snow-quick-bg) !important;
+    border: 1px solid var(--snow-quick-border) !important;
+    border-radius: 12px !important;
+    padding: 14px 18px !important;
+    margin-bottom: 18px !important;
+}
+
+/* -------------------------------------------------------------
+   Right Rail (Activity, Notifications, Tips)
+   ------------------------------------------------------------- */
+.snow-right-rail {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+}
+
+.snow-right-rail > div,
+.snow-right-rail > .block {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+}
+
+.snow-rail-card {
+    background: var(--snow-bg-card);
+    border: 1px solid var(--snow-border);
+    border-radius: 16px;
+    padding: 14px 16px;
+    box-shadow: var(--snow-shadow-card);
+    margin-bottom: 10px;
+}
+
+.snow-rail-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--snow-text-muted);
+    margin-bottom: 10px;
+}
+
+.snow-notif-item {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.snow-notif-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-top: 5px;
+    flex-shrink: 0;
+}
+
+.snow-notif-dot.blue,
+.snow-notif-dot.red {
+    background: #DC2626 !important;
+}
+
+.snow-notif-dot.green,
+.snow-notif-dot.yellow {
+    background: #EAB308 !important;
+}
+
+.snow-notif-msg {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--snow-text-primary);
+}
+
+.snow-notif-meta {
+    font-size: 11px;
+    color: var(--snow-text-muted);
+}
+
+.snow-activity-item {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: var(--snow-text-secondary);
+}
+
+.snow-tip-text {
+    font-size: 12px;
+    color: var(--snow-text-muted);
+    line-height: 1.4;
+    margin: 0;
+}
+
+/* Permanent GitHub Link */
 #permanent_github_logo,
 .permanent-github-container {
     position: fixed !important;
     top: 14px !important;
     right: 18px !important;
     z-index: 9999 !important;
-    width: auto !important;
-    height: auto !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    border: none !important;
-    background: transparent !important;
-    min-width: 0 !important;
     pointer-events: none !important;
 }
 
 .permanent-github-link {
-    display: inline-flex !important;
+    pointer-events: auto !important;
+    display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     width: 38px !important;
     height: 38px !important;
-    background-color: var(--bg-card) !important;
-    border: 1px solid var(--border-green) !important;
-    border-radius: 8px !important;
-    color: var(--text-accent) !important;
+    background-color: var(--snow-bg-card) !important;
+    border: 1px solid var(--snow-border) !important;
+    border-radius: 10px !important;
+    color: var(--snow-text-secondary) !important;
+    box-shadow: var(--snow-shadow-card) !important;
     text-decoration: none !important;
-    box-shadow: 0 0 10px rgba(22, 163, 74, 0.15) !important;
-    transition: all 0.2s ease-in-out !important;
-    cursor: pointer !important;
-    pointer-events: auto !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 .permanent-github-link:hover {
-    border-color: var(--border-bright) !important;
-    background-color: var(--bg-card-hover) !important;
-    color: #f0fdf4 !important;
-    box-shadow: 0 0 14px rgba(34, 197, 94, 0.4) !important;
+    background-color: var(--snow-bg-card-hover) !important;
+    color: var(--snow-accent) !important;
+    box-shadow: var(--snow-shadow-hover) !important;
     transform: translateY(-1px) !important;
 }
 
 .permanent-github-link svg,
 .permanent-github-link .github-icon {
-    width: 22px !important;
-    height: 22px !important;
+    width: 20px !important;
+    height: 20px !important;
     fill: currentColor !important;
     transition: transform 0.2s ease-in-out !important;
 }
@@ -585,7 +1421,7 @@ textarea:focus, input:focus {
     transform: scale(1.08) !important;
 }
 
-/* Top Announcement Banner (Dismissible) */
+/* Top Announcement Banner (Dismissible - Lightish Yellow & Red) */
 .banner-wrapper,
 #top_announcement_banner_wrapper {
     margin: 0 0 12px 0 !important;
@@ -599,49 +1435,48 @@ textarea:focus, input:focus {
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
-    background: linear-gradient(90deg, #09140f 0%, #0d1e16 50%, #09140f 100%) !important;
-    border: 1px solid var(--border-green) !important;
+    background: var(--snow-banner-bg) !important;
+    border: 1px solid var(--snow-banner-border) !important;
     border-radius: 10px !important;
-    padding: 10px 16px !important;
-    margin-right: 56px !important;
-    box-shadow: 0 0 14px rgba(22, 163, 74, 0.15), inset 0 0 12px rgba(0, 0, 0, 0.5) !important;
-    font-family: var(--font-mono) !important;
-    font-size: 13px !important;
-    color: var(--text-primary) !important;
-    transition: all 0.25s ease-in-out !important;
+    padding: 6px 14px !important;
+    margin: 0 auto 12px auto !important;
+    max-width: 900px !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+    font-family: var(--snow-font-sans) !important;
+    font-size: 12px !important;
+    color: var(--snow-banner-text) !important;
+    transition: all 0.2s ease-in-out !important;
 }
 
 .terminal-banner:hover,
 #top-announcement-banner:hover {
-    border-color: var(--border-bright) !important;
-    box-shadow: 0 0 18px rgba(34, 197, 94, 0.25), inset 0 0 12px rgba(0, 0, 0, 0.4) !important;
+    border-color: var(--snow-border-hover) !important;
 }
 
 .banner-content {
     display: flex !important;
     align-items: center !important;
-    gap: 10px !important;
+    gap: 8px !important;
     flex-grow: 1 !important;
     overflow: hidden !important;
 }
 
 .banner-prompt {
-    color: var(--text-accent) !important;
+    color: var(--snow-accent) !important;
     font-weight: 700 !important;
     font-size: 13px !important;
-    text-shadow: 0 0 6px rgba(74, 222, 128, 0.5) !important;
     user-select: none !important;
 }
 
 .banner-text {
-    color: #d1fae5 !important;
+    color: var(--snow-banner-text) !important;
     font-weight: 500 !important;
     letter-spacing: 0.01em !important;
 }
 
 .banner-repo-link,
 #banner-repo-link {
-    color: var(--text-accent) !important;
+    color: var(--snow-accent) !important;
     font-weight: 700 !important;
     text-decoration: underline !important;
     text-underline-offset: 3px !important;
@@ -650,8 +1485,7 @@ textarea:focus, input:focus {
 
 .banner-repo-link:hover,
 #banner-repo-link:hover {
-    color: #86efac !important;
-    text-shadow: 0 0 8px rgba(74, 222, 128, 0.6) !important;
+    color: var(--snow-accent-hover) !important;
 }
 
 .banner-close-btn,
@@ -662,13 +1496,13 @@ textarea:focus, input:focus {
     cursor: pointer !important;
     background: transparent !important;
     border: 1px solid transparent !important;
-    color: var(--text-muted) !important;
-    font-size: 14px !important;
+    color: var(--snow-banner-text) !important;
+    font-size: 13px !important;
     line-height: 1 !important;
     border-radius: 6px !important;
-    padding: 4px 8px !important;
+    padding: 3px 6px !important;
     margin-left: 12px !important;
-    transition: all 0.2s ease-in-out !important;
+    transition: all 0.15s ease-in-out !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -676,10 +1510,52 @@ textarea:focus, input:focus {
 
 .banner-close-btn:hover,
 #banner-dismiss-btn:hover {
-    background-color: rgba(239, 68, 68, 0.15) !important;
-    border-color: rgba(239, 68, 68, 0.4) !important;
-    color: #f87171 !important;
-    box-shadow: 0 0 8px rgba(239, 68, 68, 0.3) !important;
+    background-color: var(--snow-accent-tint) !important;
+    border-color: var(--snow-accent) !important;
+    color: var(--snow-accent) !important;
+}
+
+.snow-card h1, .snow-card h2, .snow-card h3, .snow-card h4,
+.terminal-panel h1, .terminal-panel h2, .terminal-panel h3, .terminal-panel h4,
+.snow-center-content h1, .snow-center-content h2, .snow-center-content h3, .snow-center-content h4 {
+    color: var(--snow-text-primary) !important;
+}
+
+.snow-card p, .terminal-panel p {
+    color: var(--snow-text-secondary) !important;
+}
+
+label, .gr-form > label, .gr-box label, .block > label, span[data-testid="block-info"] {
+    color: var(--snow-text-secondary) !important;
+    font-weight: 600 !important;
+}
+
+.snow-theme-toggle-btn {
+    cursor: pointer !important;
+    font-size: 15px !important;
+}
+
+.snow-pro-tip-card {
+    cursor: pointer !important;
+    transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.snow-pro-tip-card:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: var(--snow-shadow-hover) !important;
+}
+
+@media (max-width: 1100px) {
+    .snow-app-layout {
+        flex-direction: column !important;
+    }
+    .snow-sidebar, .snow-right-rail {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    .snow-kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
 }
 
 @media (max-width: 640px) {
@@ -701,7 +1577,10 @@ textarea:focus, input:focus {
     #top-announcement-banner {
         margin-right: 44px !important;
         font-size: 11px !important;
-        padding: 8px 10px !important;
+        padding: 6px 8px !important;
+    }
+    .snow-kpi-grid {
+        grid-template-columns: 1fr !important;
     }
 }
 """
@@ -1464,216 +2343,469 @@ def build_app() -> gr.Blocks:
             head=BANNER_DISMISS_HEAD,
         )
 
-        # Top Navigation & Status Bar (Matching Reference Screen 1)
-        with gr.Row(elem_classes=["header-row"]):
-            # Card 1: Connection Status with SQL
-            with gr.Column(scale=3, elem_classes=["status-card"]):
-                gr.Markdown("<div class='status-label'>Connection Status with SQL</div>")
-                conn_status_md = gr.Markdown("○ No database connected", elem_classes=["status-value"])
+        # Snow Top Navigation Bar (Breadcrumbs, Search Bar, Header Actions)
+        with gr.Row(elem_classes=["snow-header-bar"]):
+            with gr.Column(scale=3, min_width=200, elem_classes=["snow-breadcrumbs"]):
+                gr.HTML("""
+                    <div class="snow-breadcrumb-nav">
+                        <span class="snow-breadcrumb-icon">❄️</span>
+                        <span class="snow-breadcrumb-root">Dashboards</span>
+                        <span class="snow-breadcrumb-sep">/</span>
+                        <span class="snow-breadcrumb-current">Query Studio</span>
+                    </div>
+                """)
+            with gr.Column(scale=4, min_width=260, elem_classes=["snow-search-col"]):
+                gr.HTML("""
+                    <div class="snow-search-box">
+                        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <input type="text" class="snow-search-input" id="snow-search-input" placeholder="Search tables, columns, queries (press Enter to prompt)..." autocomplete="off" />
+                        <span class="snow-kbd-shortcut" title="Press ⌘K or Ctrl+K to search">⌘K</span>
+                    </div>
+                """)
+            with gr.Column(scale=2, min_width=180, elem_classes=["snow-header-actions"]):
+                with gr.Row(elem_classes=["snow-header-actions-row"]):
+                    btn_nav_set_db = gr.Button(
+                        "⚙ Set Database",
+                        elem_classes=["btn-primary-green", "header-nav-btn"],
+                        size="sm",
+                        min_width=0,
+                    )
+                    btn_refresh_health = gr.Button(
+                        "⟳",
+                        elem_classes=["btn-secondary-green", "snow-refresh-btn"],
+                        size="sm",
+                        min_width=0,
+                    )
+                    btn_theme_toggle = gr.Button(
+                        "🌙",
+                        elem_classes=["btn-secondary-green", "snow-refresh-btn", "snow-theme-toggle-btn"],
+                        size="sm",
+                        min_width=0,
+                        elem_id="snow-theme-toggle-btn",
+                    )
 
-            # Card 2: Database
-            with gr.Column(scale=2, elem_classes=["status-card"]):
-                gr.Markdown("<div class='status-label'>Database</div>")
-                database_name_md = gr.Markdown("None", elem_classes=["status-value"])
+        # Main 3-Column Snow Dashboard Layout
+        with gr.Row(elem_classes=["snow-app-layout"]):
+            # -------------------------------------------------------------
+            # COLUMN 1: LEFT NAVIGATION SIDEBAR
+            # -------------------------------------------------------------
+            with gr.Column(scale=1, min_width=180, elem_classes=["snow-sidebar"]):
+                gr.HTML("""
+                    <div class="snow-profile-card">
+                        <div class="snow-avatar">❄️</div>
+                        <div class="snow-user-info">
+                            <div class="snow-user-name">SQL Engine</div>
+                            <div class="snow-user-badge">Workstation v1.0</div>
+                        </div>
+                    </div>
+                    <div class="snow-nav-divider"></div>
+                    <div class="snow-nav-group-title">DASHBOARDS</div>
+                """)
+                btn_side_workspace = gr.Button("⚡ Query Studio", elem_classes=["snow-side-btn", "active"], size="sm")
+                btn_side_set_db = gr.Button("🗄️ Database Manager", elem_classes=["snow-side-btn"], size="sm")
+                gr.HTML("""
+                    <div class="snow-nav-divider"></div>
+                    <div class="snow-nav-group-title">PAGES</div>
+                """)
+                btn_side_sample = gr.Button("📦 Sample SQLite DB", elem_classes=["snow-side-btn"], size="sm")
+                btn_side_logs = gr.Button("📋 Activity & Logs", elem_classes=["snow-side-btn"], size="sm")
+                gr.HTML("""
+                    <div class="snow-sidebar-footer">
+                        <span class="snow-footer-tag">⚡ warm snow ui</span>
+                        <span class="snow-footer-sub">Light Contrast • Yellow & Red</span>
+                    </div>
+                """)
 
-            # Card 3: table
-            with gr.Column(scale=2, elem_classes=["status-card"]):
-                gr.Markdown("<div class='status-label'>table</div>")
-                table_count_md = gr.Markdown("0 tables", elem_classes=["status-value"])
+            # -------------------------------------------------------------
+            # COLUMN 2: CENTER WORKSPACE (MAIN DASHBOARD CONTENT)
+            # -------------------------------------------------------------
+            with gr.Column(scale=5, elem_classes=["snow-center-content"]):
+                # 4 Pastel KPI Cards Row (Alternating Lightish Yellow & Soft Red)
+                with gr.Row(elem_classes=["header-row", "snow-kpi-grid"]):
+                    # Card 1: Connection Status (Lightish Yellow)
+                    with gr.Column(scale=1, min_width=0, elem_classes=["status-card", "kpi-card-yellow"]):
+                        gr.Markdown("<div class='status-label'>Connection Status with SQL</div>")
+                        conn_status_md = gr.Markdown("○ No database connected", elem_classes=["status-value"])
+                        gr.HTML("<div class='kpi-badge-pill'>● Database</div>")
 
-            # Card 4: Quick Navigation Action to Set Database
-            with gr.Column(scale=2, min_width=140, elem_classes=["nav-button-container"]):
-                btn_nav_set_db = gr.Button(
-                    "⚙ Set Database",
-                    elem_classes=["btn-primary-green", "header-nav-btn"],
-                    size="lg",
-                )
+                    # Card 2: Database (Soft Red)
+                    with gr.Column(scale=1, min_width=0, elem_classes=["status-card", "kpi-card-red"]):
+                        gr.Markdown("<div class='status-label'>Database</div>")
+                        database_name_md = gr.Markdown("None", elem_classes=["status-value"])
+                        gr.HTML("<div class='kpi-badge-pill'>Target Source</div>")
 
-            # Card 5: Model health
-            with gr.Column(scale=3, elem_classes=["status-card"]):
-                with gr.Row():
-                    with gr.Column(scale=4):
+                    # Card 3: table count (Warm Amber Yellow)
+                    with gr.Column(scale=1, min_width=0, elem_classes=["status-card", "kpi-card-amber"]):
+                        gr.Markdown("<div class='status-label'>table</div>")
+                        table_count_md = gr.Markdown("0 tables", elem_classes=["status-value"])
+                        gr.HTML("<div class='kpi-badge-pill'>Schema Synced</div>")
+
+                    # Card 4: Model health (Soft Coral Red)
+                    with gr.Column(scale=1, min_width=0, elem_classes=["status-card", "kpi-card-coral"]):
                         gr.Markdown("<div class='status-label'>Model health</div>")
                         model_health_md = gr.Markdown("Checking...", elem_classes=["status-value"])
                         model_detail_md = gr.Markdown("Connecting...", elem_classes=["status-label"])
-                    with gr.Column(scale=1, min_width=36):
-                        btn_refresh_health = gr.Button("⟳", elem_classes=["btn-secondary-green"], size="sm")
 
-        # Tabbed Logical Pages
-        with gr.Tabs(selected="workspace") as tabs:
-            # -------------------------------------------------------------------
-            # PAGE 1: SQL WORKSPACE
-            # -------------------------------------------------------------------
-            with gr.Tab("SQL Workspace", id="workspace"):
-                gr.Markdown("### Natural Language SQL Generation")
+                # Tabbed Logical Pages
+                with gr.Tabs(selected="workspace", elem_classes=["snow-tabs"]) as tabs:
+                    # -------------------------------------------------------------------
+                    # PAGE 1: SQL WORKSPACE (Query Studio)
+                    # -------------------------------------------------------------------
+                    with gr.Tab("SQL Workspace", id="workspace"):
+                        # Natural Language Query Prompt Card
+                        with gr.Group(elem_classes=["snow-card"]):
+                            gr.Markdown("### Natural Language SQL Generation")
 
-                # Question Input Area
-                with gr.Group():
-                    question_input = gr.Textbox(
-                        label="Question",
-                        placeholder="Ask a question about your database (e.g., 'What is the total revenue for the year 2024?' or 'Show average salary by department')...",
-                        lines=3,
-                        max_lines=6,
-                    )
-                    with gr.Row():
-                        btn_generate = gr.Button(
-                            "Generate SQL",
-                            elem_classes=["btn-primary-green"],
-                            size="lg",
-                            interactive=False,
-                        )
-                        btn_clear = gr.Button(
-                            "Clear",
-                            elem_classes=["btn-secondary-green"],
-                            size="lg",
-                        )
+                            # Prompt suggestion chips
+                            gr.HTML("<div class='chips-header'><span class='chips-label'>Try asking:</span></div>")
+                            with gr.Row(elem_classes=["snow-chips-row"]):
+                                chip1 = gr.Button("Total sales by department", elem_classes=["snow-chip-btn"], size="sm", min_width=0)
+                                chip2 = gr.Button("Employees hired after 2021", elem_classes=["snow-chip-btn"], size="sm", min_width=0)
+                                chip3 = gr.Button("Top 5 sales by amount", elem_classes=["snow-chip-btn"], size="sm", min_width=0)
+                                chip4 = gr.Button("Average salary by department", elem_classes=["snow-chip-btn"], size="sm", min_width=0)
 
-                    status_line = gr.Markdown("Ready", elem_classes=["status-label"])
+                            question_input = gr.Textbox(
+                                label="Question",
+                                placeholder="Ask a question about your database (e.g., 'What is the total revenue for the year 2024?' or 'Show average salary by department')...",
+                                lines=3,
+                                max_lines=6,
+                                elem_id="question_input",
+                            )
+                            with gr.Row():
+                                btn_generate = gr.Button(
+                                    "Generate SQL",
+                                    elem_classes=["btn-primary-green"],
+                                    size="lg",
+                                    interactive=False,
+                                )
+                                btn_clear = gr.Button(
+                                    "Clear",
+                                    elem_classes=["btn-secondary-green"],
+                                    size="lg",
+                                )
 
-                # Output Area (Terminal Style)
-                with gr.Group(elem_classes=["terminal-panel"]):
-                    gr.Markdown("#### Output Terminal")
-                    sql_output = gr.Code(
-                        value="-- Generated SQL will appear here --",
-                        language="sql",
-                        lines=7,
-                        label="Generated SQL",
-                        interactive=False,
-                    )
-                    metadata_line = gr.Markdown(
-                        "Metadata: Ready",
-                        elem_classes=["status-label"],
-                    )
+                            status_line = gr.Markdown("Ready", elem_classes=["status-label"])
 
-                    with gr.Row():
-                        btn_run_sql = gr.Button(
-                            "▶ Run SQL",
-                            elem_classes=["btn-primary-green"],
-                            interactive=False,
-                            size="md",
-                        )
-                        btn_copy_sql = gr.Button(
-                            "📋 Copy SQL",
-                            elem_classes=["btn-secondary-green"],
-                            size="md",
-                        )
+                        # Output Area (Terminal Style)
+                        with gr.Group(elem_classes=["terminal-panel", "snow-card"]):
+                            with gr.Row():
+                                with gr.Column(scale=3):
+                                    gr.Markdown("#### Output Terminal")
+                                with gr.Column(scale=1, min_width=140):
+                                    btn_copy_sql = gr.Button(
+                                        "📋 Copy SQL",
+                                        elem_classes=["btn-secondary-green"],
+                                        size="sm",
+                                    )
 
-                    # Query execution feedback and dataframe
-                    execution_info = gr.Markdown(visible=False)
-                    results_table = gr.DataFrame(
-                        label="Query Results",
-                        visible=False,
-                        interactive=False,
-                    )
+                            sql_output = gr.Code(
+                                value="-- Generated SQL will appear here --",
+                                language="sql",
+                                lines=7,
+                                label="Generated SQL",
+                                interactive=False,
+                            )
+                            metadata_line = gr.Markdown(
+                                "Metadata: Ready",
+                                elem_classes=["status-label"],
+                            )
 
-            # -------------------------------------------------------------------
-            # PAGE 2: SET DATABASE
-            # -------------------------------------------------------------------
-            with gr.Tab("Set Database", id="set_db"):
-                with gr.Row():
-                    with gr.Column(scale=3):
-                        gr.Markdown("### Set Database")
-                    with gr.Column(scale=1, min_width=200):
-                        btn_back_to_workspace = gr.Button(
-                            "← Back to SQL Workspace",
-                            elem_classes=["btn-secondary-green"],
-                            size="md",
-                        )
+                            with gr.Row():
+                                btn_run_sql = gr.Button(
+                                    "▶ Run SQL",
+                                    elem_classes=["btn-primary-green"],
+                                    interactive=False,
+                                    size="md",
+                                )
 
-                # Two-Column Credentials Layout (Matching Reference Screen 2)
-                with gr.Row():
-                    # Column 1
-                    with gr.Column():
-                        db_type_menu = gr.Dropdown(
-                            choices=["SQLite", "PostgreSQL", "MySQL", "Supabase (API)", "Supabase"],
-                            value="SQLite",
-                            label="DB type(menu)",
-                        )
-                        username_input = gr.Textbox(
-                            label="username",
-                            placeholder="postgres",
-                            visible=False,
-                        )
-                        port_input = gr.Textbox(
-                            label="port",
-                            placeholder="5432",
-                            visible=False,
-                        )
+                            # Query execution feedback and dataframe
+                            execution_info = gr.Markdown(visible=False)
+                            results_table = gr.DataFrame(
+                                label="Query Results",
+                                visible=False,
+                                interactive=False,
+                            )
 
-                    # Column 2
-                    with gr.Column():
-                        db_name_input = gr.Textbox(
-                            label="DB Name / Path",
-                            placeholder="e.g. sample_company.db",
-                            value=SAMPLE_DB_PATH,
-                        )
-                        host_input = gr.Textbox(
-                            label="host",
-                            placeholder="localhost",
-                            visible=False,
-                        )
-                        password_input = gr.Textbox(
-                            label="password",
-                            type="password",
-                            placeholder="••••••••",
-                            visible=False,
-                        )
+                    # -------------------------------------------------------------------
+                    # PAGE 2: SET DATABASE
+                    # -------------------------------------------------------------------
+                    with gr.Tab("Set Database", id="set_db"):
+                        with gr.Group(elem_classes=["snow-card"]):
+                            with gr.Row():
+                                with gr.Column(scale=3):
+                                    gr.Markdown("### Set Database")
+                                with gr.Column(scale=1, min_width=200):
+                                    btn_back_to_workspace = gr.Button(
+                                        "← Back to SQL Workspace",
+                                        elem_classes=["btn-secondary-green"],
+                                        size="md",
+                                    )
 
-                db_mode_hint = gr.Markdown(
-                    "SQLite mode: Enter database file path. Credentials are not required.",
-                    elem_classes=["status-label"],
-                )
+                            # Quick sample DB loader box
+                            with gr.Group(elem_classes=["snow-quick-sample-box"]):
+                                with gr.Row():
+                                    with gr.Column(scale=3):
+                                        gr.Markdown("**Quick Start**: Test queries instantly with the pre-populated SQLite company database.")
+                                    with gr.Column(scale=1, min_width=180):
+                                        btn_sample_db = gr.Button(
+                                            "Load Sample SQLite DB",
+                                            elem_classes=["btn-primary-green"],
+                                            size="md",
+                                        )
 
-                with gr.Row():
-                    btn_connect = gr.Button(
-                        "Connect",
-                        elem_classes=["btn-primary-green"],
-                        size="lg",
-                    )
-                    btn_sample_db = gr.Button(
-                        "Load Sample SQLite DB",
-                        elem_classes=["btn-secondary-green"],
-                        size="lg",
-                    )
-                    btn_clear_creds = gr.Button(
-                        "🗑️ Clear Saved Credentials",
-                        elem_classes=["btn-secondary-green"],
-                        size="lg",
-                    )
+                            # Two-Column Credentials Layout (Matching Reference Screen 2)
+                            with gr.Row():
+                                # Column 1
+                                with gr.Column():
+                                    db_type_menu = gr.Dropdown(
+                                        choices=["SQLite", "PostgreSQL", "MySQL", "Supabase (API)", "Supabase"],
+                                        value="SQLite",
+                                        label="DB type(menu)",
+                                    )
+                                    username_input = gr.Textbox(
+                                        label="username",
+                                        placeholder="postgres",
+                                        visible=False,
+                                    )
+                                    port_input = gr.Textbox(
+                                        label="port",
+                                        placeholder="5432",
+                                        visible=False,
+                                    )
 
-                connect_banner = gr.Markdown(
-                    "Ready to connect. Choose a database or click 'Load Sample SQLite DB'.",
-                    elem_classes=["status-label"],
-                )
+                                # Column 2
+                                with gr.Column():
+                                    db_name_input = gr.Textbox(
+                                        label="DB Name / Path",
+                                        placeholder="e.g. sample_company.db",
+                                        value=SAMPLE_DB_PATH,
+                                    )
+                                    host_input = gr.Textbox(
+                                        label="host",
+                                        placeholder="localhost",
+                                        visible=False,
+                                    )
+                                    password_input = gr.Textbox(
+                                        label="password",
+                                        type="password",
+                                        placeholder="••••••••",
+                                        visible=False,
+                                    )
 
-                # Logs Area at Bottom (Matching Reference Screen 2)
-                with gr.Group(elem_classes=["terminal-panel"]):
-                    gr.Markdown("#### Logs")
-                    logs_terminal = gr.Textbox(
-                        label="Connection & Schema Logs",
-                        lines=8,
-                        max_lines=15,
-                        value="\n".join(get_initial_state()["logs"]),
-                        interactive=False,
-                        elem_classes=["logs-box"],
-                    )
+                            db_mode_hint = gr.Markdown(
+                                "SQLite mode: Enter database file path. Credentials are not required.",
+                                elem_classes=["status-label"],
+                            )
+
+                            with gr.Row():
+                                btn_connect = gr.Button(
+                                    "Connect",
+                                    elem_classes=["btn-primary-green"],
+                                    size="lg",
+                                )
+                                btn_clear_creds = gr.Button(
+                                    "🗑️ Clear Saved Credentials",
+                                    elem_classes=["btn-secondary-green"],
+                                    size="lg",
+                                )
+
+                            connect_banner = gr.Markdown(
+                                "Ready to connect. Choose a database or click 'Load Sample SQLite DB'.",
+                                elem_classes=["status-label"],
+                            )
+
+                            # Logs Area at Bottom (Matching Reference Screen 2)
+                            with gr.Group(elem_classes=["terminal-panel", "snow-logs-panel"]):
+                                with gr.Row():
+                                    with gr.Column(scale=3):
+                                        gr.Markdown("#### Logs")
+                                    with gr.Column(scale=1, min_width=110):
+                                        btn_copy_logs = gr.Button(
+                                            "📋 Copy",
+                                            elem_classes=["btn-secondary-green"],
+                                            size="sm",
+                                        )
+                                    with gr.Column(scale=1, min_width=110):
+                                        btn_clear_logs = gr.Button(
+                                            "🗑️ Clear",
+                                            elem_classes=["btn-secondary-green"],
+                                            size="sm",
+                                        )
+                                logs_terminal = gr.Textbox(
+                                    label="Connection & Schema Logs",
+                                    lines=8,
+                                    max_lines=15,
+                                    value="\n".join(get_initial_state()["logs"]),
+                                    interactive=False,
+                                    elem_classes=["logs-box"],
+                                    elem_id="logs_terminal",
+                                )
+
+            # -------------------------------------------------------------
+            # COLUMN 3: RIGHT RAIL (ACTIVITIES & NOTIFICATIONS)
+            # -------------------------------------------------------------
+            with gr.Column(scale=1, min_width=200, elem_classes=["snow-right-rail"]):
+                gr.HTML("""
+                    <div class="snow-rail-card snow-notif-card" style="cursor: pointer;" title="Click to view connection and engine status">
+                        <div class="snow-rail-title">🔔 Notifications</div>
+                        <div class="snow-notif-item">
+                            <div class="snow-notif-dot red"></div>
+                            <div class="snow-notif-body">
+                                <div class="snow-notif-msg">ZeroGPU / Direct Mode</div>
+                                <div class="snow-notif-meta">In-process inference active</div>
+                            </div>
+                        </div>
+                        <div class="snow-notif-item">
+                            <div class="snow-notif-dot yellow"></div>
+                            <div class="snow-notif-body">
+                                <div class="snow-notif-msg">Schema Cache Ready</div>
+                                <div class="snow-notif-meta">Dynamic introspector active</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="snow-rail-card snow-activity-card" style="cursor: pointer;" title="Click to jump to Activity & Logs">
+                        <div class="snow-rail-title">⚡ Activities</div>
+                        <div class="snow-activity-item">
+                            <span class="activity-icon">📊</span>
+                            <div class="activity-text">Database manager initialized</div>
+                        </div>
+                        <div class="snow-activity-item">
+                            <span class="activity-icon">🔒</span>
+                            <div class="activity-text">Read-only SQL safety guards enabled</div>
+                        </div>
+                        <div class="snow-activity-item">
+                            <span class="activity-icon">⚡</span>
+                            <div class="activity-text">Warm Snow UI active</div>
+                        </div>
+                    </div>
+
+                    <div class="snow-rail-card snow-pro-tip-card" style="cursor: pointer;" title="Click to test a sample prompt chip">
+                        <div class="snow-rail-title">💡 Pro Tips</div>
+                        <p class="snow-tip-text">Click any query chip in the prompt studio to test without manual typing. <span style="color: var(--snow-accent); font-weight: 600;">(Try now →)</span></p>
+                    </div>
+                """)
 
         # -------------------------------------------------------------------
         # Event Bindings & Interactivity
         # -------------------------------------------------------------------
 
-        # 1. Navigation Actions
+        # 1. Navigation Actions (MUST REMAIN FIRST TWO FOR TESTS fn0 and fn1)
         btn_nav_set_db.click(
             fn=lambda: gr.Tabs(selected="set_db"),
             outputs=[tabs],
             show_progress="hidden",
-            js="() => { const b = document.querySelector('button[data-tab-id=\"set_db\"]'); if (b) b.click(); }",
+            js="() => { const b = document.querySelector('button[data-tab-id=\"set_db\"]'); if (b) b.click(); if (window.__sql_engine_set_nav_active) window.__sql_engine_set_nav_active('set_db'); }",
         )
         btn_back_to_workspace.click(
             fn=lambda: gr.Tabs(selected="workspace"),
             outputs=[tabs],
             show_progress="hidden",
-            js="() => { const b = document.querySelector('button[data-tab-id=\"workspace\"]'); if (b) b.click(); }",
+            js="() => { const b = document.querySelector('button[data-tab-id=\"workspace\"]'); if (b) b.click(); if (window.__sql_engine_set_nav_active) window.__sql_engine_set_nav_active('workspace'); }",
+        )
+
+        # Sidebar navigation buttons
+        btn_side_workspace.click(
+            fn=lambda: gr.Tabs(selected="workspace"),
+            outputs=[tabs],
+            show_progress="hidden",
+            js="() => { const b = document.querySelector('button[data-tab-id=\"workspace\"]'); if (b) b.click(); if (window.__sql_engine_set_nav_active) window.__sql_engine_set_nav_active('workspace'); }",
+        )
+        btn_side_set_db.click(
+            fn=lambda: gr.Tabs(selected="set_db"),
+            outputs=[tabs],
+            show_progress="hidden",
+            js="() => { const b = document.querySelector('button[data-tab-id=\"set_db\"]'); if (b) b.click(); if (window.__sql_engine_set_nav_active) window.__sql_engine_set_nav_active('set_db'); }",
+        )
+
+        # 1b. Sidebar Sample DB Quick Start (Loads sample DB, updates UI, switches to workspace)
+        def handle_side_sample_quickstart(state: dict[str, Any]) -> tuple[Any, Any, Any, Any, Any, Any, str, str, str, str, str, str, gr.Tabs, dict[str, Any]]:
+            (
+                db_menu, db_name, host, port, user, pwd,
+                conn_st, db_md, tbl_md, logs_txt, banner_txt, updated_state
+            ) = handle_load_sample(state)
+            sample_q = "What is the total sales amount by department?"
+            return (
+                db_menu, db_name, host, port, user, pwd,
+                conn_st, db_md, tbl_md, logs_txt, banner_txt,
+                sample_q,
+                gr.Tabs(selected="workspace"),
+                updated_state,
+            )
+
+        btn_side_sample.click(
+            fn=handle_side_sample_quickstart,
+            inputs=[state],
+            outputs=[
+                db_type_menu,
+                db_name_input,
+                host_input,
+                port_input,
+                username_input,
+                password_input,
+                conn_status_md,
+                database_name_md,
+                table_count_md,
+                logs_terminal,
+                connect_banner,
+                question_input,
+                tabs,
+                state,
+            ],
+            show_progress="hidden",
+            js="() => { const b = document.querySelector('button[data-tab-id=\"workspace\"]'); if (b) b.click(); if (window.__sql_engine_set_nav_active) window.__sql_engine_set_nav_active('workspace'); }",
+        ).then(
+            fn=lambda s: gr.update(interactive=bool(s.get("is_connected") and s.get("schema"))),
+            inputs=[state],
+            outputs=[btn_generate],
+        )
+
+        # 1c. Sidebar Logs Navigation (Switches to Set Database, refreshes logs, scrolls to terminal)
+        def handle_side_logs_jump(state: dict[str, Any]) -> tuple[gr.Tabs, str]:
+            logs_content = "\n".join(state.get("logs", []))
+            return gr.Tabs(selected="set_db"), logs_content
+
+        btn_side_logs.click(
+            fn=handle_side_logs_jump,
+            inputs=[state],
+            outputs=[tabs, logs_terminal],
+            show_progress="hidden",
+            js="""() => {
+                const b = document.querySelector('button[data-tab-id="set_db"]');
+                if (b) b.click();
+                if (window.__sql_engine_set_nav_active) window.__sql_engine_set_nav_active('logs');
+                setTimeout(() => {
+                    const el = document.querySelector('.logs-box') || document.querySelector('#logs_terminal');
+                    if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        el.style.transition = 'box-shadow 0.3s ease, border-color 0.3s ease';
+                        el.style.boxShadow = '0 0 0 3px rgba(220, 38, 38, 0.45)';
+                        setTimeout(() => { el.style.boxShadow = ''; }, 1500);
+                    }
+                }, 150);
+            }""",
+        )
+
+        # Prompt suggestion chips
+        chip1.click(
+            fn=lambda s: ("What is the total sales amount by department?", gr.update(interactive=bool(s.get("is_connected") and s.get("schema")))),
+            inputs=[state],
+            outputs=[question_input, btn_generate],
+        )
+        chip2.click(
+            fn=lambda s: ("Show all employees hired after 2021 along with their department", gr.update(interactive=bool(s.get("is_connected") and s.get("schema")))),
+            inputs=[state],
+            outputs=[question_input, btn_generate],
+        )
+        chip3.click(
+            fn=lambda s: ("List the top 5 sales ordered by amount descending", gr.update(interactive=bool(s.get("is_connected") and s.get("schema")))),
+            inputs=[state],
+            outputs=[question_input, btn_generate],
+        )
+        chip4.click(
+            fn=lambda s: ("Calculate average employee salary grouped by department name", gr.update(interactive=bool(s.get("is_connected") and s.get("schema")))),
+            inputs=[state],
+            outputs=[question_input, btn_generate],
         )
 
         # 2. Dynamic DB Type changes
@@ -1863,6 +2995,24 @@ def build_app() -> gr.Blocks:
             outputs=[model_health_md, model_detail_md],
         )
 
+        # 10. Copy and Clear Logs Actions
+        btn_copy_logs.click(
+            fn=lambda: "Logs copied to clipboard.",
+            outputs=[status_line],
+            js="() => { const box = document.querySelector('.logs-box textarea') || document.querySelector('#logs_terminal textarea'); if (box && box.value) navigator.clipboard.writeText(box.value); }",
+        )
+
+        def handle_clear_logs(state: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+            msg = format_log_entry("Logs cleared by user.")
+            state["logs"] = [msg]
+            return msg, state
+
+        btn_clear_logs.click(
+            fn=handle_clear_logs,
+            inputs=[state],
+            outputs=[logs_terminal, state],
+        )
+
         demo.load(
             fn=populate_from_client_storage,
             inputs=[client_storage_bridge, db_type_menu],
@@ -1916,6 +3066,10 @@ def build_app() -> gr.Blocks:
                     if (sessionStorage.getItem('dismiss_local_run_banner') === '1') {
                         dismissTopBanner();
                     }
+
+                    if (window.__sql_engine_init_theme) {
+                        window.__sql_engine_init_theme();
+                    }
                 } catch (bannerErr) {
                     console.error('Error initializing banner dismiss listener in demo.load:', bannerErr);
                 }
@@ -1944,12 +3098,12 @@ def build_app() -> gr.Blocks:
 
 
 def get_app_theme() -> gr.Theme:
-    """Returns the custom emerald monospace developer workstation theme."""
+    """Returns the modern Snow Dashboard UI theme with high light contrast and warm red/yellow palette."""
     return gr.themes.Default(
-        primary_hue=gr.themes.colors.emerald,
-        secondary_hue=gr.themes.colors.green,
-        neutral_hue=gr.themes.colors.zinc,
-        font=[gr.themes.GoogleFont("JetBrains Mono"), "ui-monospace", "monospace"],
+        primary_hue=gr.themes.colors.red,
+        secondary_hue=gr.themes.colors.amber,
+        neutral_hue=gr.themes.colors.slate,
+        font=[gr.themes.GoogleFont("Inter"), "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
         font_mono=[gr.themes.GoogleFont("JetBrains Mono"), "ui-monospace", "monospace"],
     )
 
